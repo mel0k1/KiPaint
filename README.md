@@ -1,85 +1,84 @@
+<div align="center">
 
+# KiPaint
 
-<a href="https://graphite.art/">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/9366c148-4405-484f-909a-9a3526eb9209">
-<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/791508ab-bcd5-4e31-a3b9-1187cfd7a2f6">
-<img alt="Graphite logo" src="https://github.com/user-attachments/assets/791508ab-bcd5-4e31-a3b9-1187cfd7a2f6">
-</picture>
-</a>
+**Free & open-source digital painting app for illustration, comics and manga.**
+**Built in Rust. GPU-accelerated. A Clip Studio Paint-style workflow, done right.**
 
-# Your procedural toolbox for 2D content creation
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE-APACHE)
+[![Rust](https://img.shields.io/badge/rust-1.98%2B-orange.svg)](https://www.rust-lang.org)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
+[![Build](https://github.com/mel0k1/KiPaint/actions/workflows/build.yml/badge.svg)](https://github.com/mel0k1/KiPaint/actions/workflows/build.yml)
 
-**Graphite is a free, open source vector and raster graphics engine, [available now](https://editor.graphite.art) in alpha. Get creative with a fully nondestructive editing workflow that combines layer-based compositing with node-based generative design.**
+*Русская версия: [README.ru.md](README.ru.md)*
 
-Having begun life as a vector editor, Graphite continues evolving into a generalized, all-in-one graphics toolbox that's built more like a game engine than a conventional creative app. The editor's tools wrap its node graph core, providing user-friendly workflows for vector, raster, and beyond. Photo editing, motion graphics, digital painting, desktop publishing, and VFX compositing are additional competencies on the planned [roadmap](https://graphite.art/features/#roadmap) making Graphite into a highly versatile content creation tool.
+</div>
 
-Learn more from the [website](https://graphite.art/), subscribe to the [newsletter](https://graphite.art/#newsletter), consider [volunteering](https://graphite.art/volunteer/) or [donating](https://graphite.art/donate/), and remember to give this repository a ⭐!
+---
 
-<br />
-<a href="https://discord.graphite.art/">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/ad185fac-3b48-446d-863c-2bcb0724abee">
-<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/aa23f503-f3bf-444a-9080-8eaa19fa2fa8">
-<img alt="Discord" src="https://github.com/user-attachments/assets/aa23f503-f3bf-444a-9080-8eaa19fa2fa8" width="48" height="48">
-</picture>
-</a>
-&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://www.reddit.com/r/graphite/">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/d8c05686-2eb9-4ac1-8149-728c12b4e71a">
-<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/6f32329a-4d6f-42d8-9a2f-42977c0b3c05">
-<img alt="Reddit" src="https://github.com/user-attachments/assets/6f32329a-4d6f-42d8-9a2f-42977c0b3c05" width="48" height="48">
-</picture>
-</a>
-&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://bsky.app/profile/graphiteeditor.bsky.social">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/c736d80c-e9bf-4591-a7e0-a7723057a906">
-<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/3db9b0a1-5ab7-4bff-bfd3-8a4ade7b98bd">
-<img alt="Bluesky" src="https://github.com/user-attachments/assets/3db9b0a1-5ab7-4bff-bfd3-8a4ade7b98bd" width="48" height="48">
-</picture>
-</a>
-&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://twitter.com/graphiteeditor">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/115f04cc-e3c2-4f90-ac35-eb9edd3ca9be">
-<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/4ed4185d-a622-418c-bbf4-a0419e690ca9">
-<img alt="Twitter" src="https://github.com/user-attachments/assets/4ed4185d-a622-418c-bbf4-a0419e690ca9" width="48" height="48">
-</picture>
-</a>
-&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://www.youtube.com/@GraphiteEditor">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/cbc02fad-5cbc-4715-a8e5-860198e989c7">
-<source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/d13b484d-97a8-4d9e-bbe4-c60348b3f676">
-<img alt="YouTube" src="https://github.com/user-attachments/assets/d13b484d-97a8-4d9e-bbe4-c60348b3f676" width="48" height="48">
-</picture>
-</a>
-<br /><br />
+## What is KiPaint
 
-https://github.com/user-attachments/assets/f4604aea-e8f1-45ce-9218-46ddc666f11d
+KiPaint is a free and open-source painting application aimed at one thing: **the drawing feel of Clip Studio Paint, without the paywall or the closed source.** It is built on top of the [Graphite](https://github.com/GraphiteEditor/Graphite) engine (Apache-2.0), keeping its node-based core, GPU renderer and CRDT document model, while replacing the designer-oriented interface and toolset with a workflow tuned for illustrators, comic and manga artists.
 
-## Support our mission ❤️
+The focus is not on reinventing a graphics engine — it is on delivering the daily-driver features that painters actually need: a natural brush engine with pressure dynamics and line stabilization, raster layers with clipping masks, flood fill that just works, vector line editing, an animation timeline, and comic panels — in a native desktop app that feels like a real paint tool, not a node editor with tools bolted on.
 
-Graphite is 100% community built and funded. Please become a part of keeping the project alive and thriving with a [donation](https://graphite.art/donate/) if you share a belief in our **mission**:
+> *CLIP STUDIO PAINT is a trademark of Celsys, Inc. KiPaint is an independent open-source project, not affiliated with or endorsed by Celsys. All interface design and assets are original.*
 
-> Graphite strives to unshackle the creativity of every budding artist and seasoned professional by building the best comprehensive art and design tool that's accessible to all.
-> 
-> Mission success will come when Graphite is an industry standard. A cohesive product vision and focus on innovation over imitation is the strategy that will make that possible.
+## Status
 
-## Screenshots
+The project is in early development. The current state is the imported Graphite base (editor core, node graph, desktop shell, web frontend) with KiPaint documentation. Functional KiPaint-specific work starts now — see the [roadmap](ROADMAP.md).
 
-![Made using nondestructive boolean operations and procedural polka dot patterns](https://github.com/user-attachments/assets/decb7011-18c2-4c68-82af-d1fa5064244a)
+**What already works (inherited from the Graphite base):**
 
-![Mandelbrot fractal filled with a noise pattern, procedurally generated and infinitely scalable](https://github.com/user-attachments/assets/9e023997-185b-4f43-a724-797d308d9e7b)
+| Area | State |
+|---|---|
+| Native desktop shell | winit + wgpu window, Windows / macOS / Linux |
+| Tablet input | Pressure, tilt, twist, eraser tip via a patched winit fork |
+| Brush engine | GPU brush (supergaussian kernel): diameter, hardness, flow, pressure → size |
+| Layers | Node-graph layers, folders, 27+ blend modes, clipping masks, opacity |
+| Vector tools | Pen, path, freehand, spline, shapes, boolean path ops |
+| Raster editing | Levels, curves, hue/saturation, blur, LUT color lookup (`.cube`, `.3dl`, `.csp`…) |
+| Text | Font catalog, on-canvas editing, convert-to-path |
+| Document format | CRDT-based `.gdd` container — undo, migrations and merging from one storage |
+| UI framework | Svelte frontend, dockable panel system, full localization infrastructure |
 
-![Design for a magazine spread, a preview of the upcoming focus on desktop publishing](https://github.com/user-attachments/assets/90eca551-5868-4f8d-9016-33958bf96345)
+**What KiPaint adds (planned):** line stabilization and pressure curves, per-brush opacity and textures, flood fill & auto select with gap closing, CSP-style default layout, brush palette with sub-tools, color wheel and mixer, navigator, animation timeline with onion skin, vector line correction tools, rulers and perspective, comic frames and speech balloons, screentones, PSD support. Details in [ROADMAP.md](ROADMAP.md).
 
-## Contributing/building the code
+## Building
 
-Are you a graphics programmer or Rust developer? Graphite aims to be one of the most approachable projects for putting your engineering skills to use in the world of open source. See [instructions here](https://graphite.art/volunteer/guide/) for setting up the project and getting started.
+Requirements: Rust 1.98+, Node.js + npm, `wasm32-unknown-unknown` target, pinned `wasm-bindgen-cli`, `wasm-opt`, `cargo-about` (the `cargo run` bootstrapper below checks and installs most of this automatically; CEF builds additionally need CMake + Ninja on Windows/macOS).
+
+```bash
+# first build (downloads branding assets, builds wasm, bundles the desktop app)
+cargo run --package cargo-run -- desktop
+
+# or via the shorthand helper
+cargo run -- desktop
+```
+
+Build artifacts and bundles are produced by `graphite-desktop-bundle`; on first run the frontend wasm module is compiled to `frontend/wrapper/pkg-native/` and the Svelte frontend to `frontend/dist/`.
+
+Web (WASM) build:
+
+```bash
+cargo run -- web
+```
+
+## Project structure
+
+| Directory | Contents |
+|---|---|
+| `desktop/` | Native desktop shell: window, compositor, input, bundling, platform code (Linux / macOS / Windows) |
+| `editor/` | Rust editor core: message system, tools, document and portfolio state |
+| `node-graph/` | Node engine: graph compiler, executor, wgpu GPU runtime, brush, raster, vector, blending nodes |
+| `document/` | Document format and CRDT storage (`.gdd` container) |
+| `frontend/` | Svelte/TypeScript UI (runs in CEF on desktop, browser on web) |
+| `tools/` | Dev tooling: `cargo-run` bootstrapper, CI drivers, docs generators |
+
+## Credits
+
+KiPaint is built on the excellent work of the [Graphite](https://graphite.art) project and its contributors — the editor core, node engine, renderer and desktop shell all originate from the Graphite codebase. Without it, KiPaint would not exist. Go star [their repository](https://github.com/GraphiteEditor/Graphite) and consider [supporting the upstream project](https://graphite.art/donate/).
 
 ## License
 
-Graphite's source code is dual-licensed under your choice of either the [MIT license](LICENSE-MIT) or the [Apache License 2.0](LICENSE-APACHE), at your option, unless otherwise noted within the repository. By submitting code for inclusion in the project, you agree to license your contributions under both licenses, and that you have the authority to do so.
+Apache License 2.0 — see [LICENSE-APACHE](LICENSE-APACHE). The same license as the upstream Graphite project.
