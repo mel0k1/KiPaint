@@ -1,6 +1,6 @@
 use super::tool_prelude::*;
 use crate::application::generate_uuid;
-use crate::consts::{BRUSH_FLOW_DEFAULT, BRUSH_HARDNESS_DEFAULT, BRUSH_SIZE_DEFAULT};
+use crate::consts::{BRUSH_FLOW_DEFAULT, BRUSH_HARDNESS_DEFAULT, BRUSH_SIZE_DEFAULT, BRUSH_STABILIZATION_DEFAULT};
 use crate::messages::portfolio::document::graph_operation::transform_utils::get_current_transform;
 use crate::messages::portfolio::document::node_graph::document_node_definitions::{DefinitionIdentifier, resolve_proto_node_type};
 use crate::messages::portfolio::document::utility_types::document_metadata::LayerNodeIdentifier;
@@ -30,6 +30,7 @@ pub struct BrushOptions {
 	diameter: f64,
 	hardness: f64,
 	flow: f64,
+	stabilization: f64,
 	color: ToolColorOptions,
 	scale_with_viewport: bool,
 	last_synced_selection: Vec<LayerNodeIdentifier>,
@@ -41,6 +42,7 @@ impl Default for BrushOptions {
 			diameter: BRUSH_SIZE_DEFAULT,
 			hardness: BRUSH_HARDNESS_DEFAULT,
 			flow: BRUSH_FLOW_DEFAULT,
+			stabilization: BRUSH_STABILIZATION_DEFAULT,
 			color: ToolColorOptions::default(),
 			scale_with_viewport: false,
 			last_synced_selection: Vec::new(),
@@ -55,6 +57,10 @@ impl BrushOptions {
 
 	fn stroke_diameter(&self, document: &DocumentMessageHandler) -> f64 {
 		if self.scale_with_viewport { self.diameter / viewport_zoom(document) } else { self.diameter }
+	}
+
+	fn stabilization_alpha(&self) -> f64 {
+		1. - (self.stabilization / 100.).clamp(0., 1.) * 0.95
 	}
 }
 
@@ -82,6 +88,7 @@ pub enum BrushToolMessageOptionsUpdate {
 	Diameter(f64),
 	Hardness(f64),
 	Flow(f64),
+	Stabilization(f64),
 	ScaleWithViewport(bool),
 	WorkingColorsChanged,
 }
@@ -191,6 +198,22 @@ impl LayoutHolder for BrushTool {
 					.into()
 				})
 				.widget_instance(),
+			Separator::new(SeparatorStyle::Related).widget_instance(),
+			NumberInput::new(Some(self.options.stabilization))
+				.label("Stabilization")
+				.tooltip_label("Stabilization")
+				.tooltip_description("Smooths out hand tremor by delaying and averaging the stroke. Higher values produce smoother but more lagging lines.")
+				.min(0.)
+				.max(100.)
+				.mode_range()
+				.unit("%")
+				.on_update(|number_input: &NumberInput| {
+					BrushToolMessage::UpdateOptions {
+						options: BrushToolMessageOptionsUpdate::Stabilization(number_input.value.unwrap()),
+					}
+					.into()
+				})
+				.widget_instance(),
 		];
 
 		Layout(vec![LayoutGroup::row(widgets)])
@@ -227,6 +250,7 @@ impl<'a> MessageHandler<ToolMessage, &mut ToolActionMessageContext<'a>> for Brus
 			BrushToolMessageOptionsUpdate::Diameter(diameter) => self.options.diameter = diameter,
 			BrushToolMessageOptionsUpdate::Hardness(hardness) => self.options.hardness = hardness,
 			BrushToolMessageOptionsUpdate::Flow(flow) => self.options.flow = flow,
+			BrushToolMessageOptionsUpdate::Stabilization(stabilization) => self.options.stabilization = stabilization,
 			BrushToolMessageOptionsUpdate::Color(color) => {
 				if let Some(color) = color {
 					responses.add(ToolMessage::SelectWorkingColor { color, primary: true });
@@ -303,6 +327,9 @@ struct BrushToolData {
 	layer: Option<LayerNodeIdentifier>,
 	transform: DAffine2,
 	last_sample: (DVec2, Option<f64>),
+	smoothed_position: DVec2,
+	smoothed_pressure: Option<f64>,
+	last_time_millis: f64,
 }
 
 enum BrushTarget {
@@ -421,6 +448,28 @@ impl BrushToolData {
 			value: TaggedValue::Strokes(strokes).into(),
 		});
 	}
+
+
+	fn flush_stroke(&mut self, document: &DocumentMessageHandler, options: &BrushOptions) {
+		let Some(layer) = self.layer else { return };
+		let raw = self.last_sample.0;
+		let target = document
+			.network_interface
+			.document_metadata()
+			.downstream_transform_to_viewport(layer)
+			.inverse()
+			.transform_point2(raw);
+		let target = self.transform.inverse().transform_point2(target);
+		let alpha = options.stabilization_alpha();
+		for _ in 0..200 {
+			let delta = target - self.smoothed_position;
+			if delta.length() < 0.05 {
+				break;
+			}
+			self.smoothed_position += delta * alpha;
+			self.push_sample(self.smoothed_position, self.smoothed_pressure, self.last_time_millis);
+		}
+	}
 }
 
 impl Fsm for BrushToolFsmState {
@@ -471,6 +520,9 @@ impl Fsm for BrushToolFsmState {
 				}
 				tool_data.push_sample(layer_position, pressure, input.mouse.time.unwrap_or(0.));
 				tool_data.last_sample = (input.mouse.position, pressure);
+				tool_data.smoothed_position = layer_position;
+				tool_data.smoothed_pressure = pressure;
+				tool_data.last_time_millis = input.mouse.time.unwrap_or(0.);
 
 				match target {
 					BrushTarget::Existing { strokes_node_id, strokes } => {
@@ -539,8 +591,15 @@ impl Fsm for BrushToolFsmState {
 						.transform_point2(input.mouse.position);
 					let layer_position = tool_data.transform.inverse().transform_point2(layer_position);
 
-					tool_data.push_sample(layer_position, pressure, input.mouse.time.unwrap_or(0.));
+					let alpha = tool_options.stabilization_alpha();
+					tool_data.smoothed_position += (layer_position - tool_data.smoothed_position) * alpha;
+					tool_data.smoothed_pressure = match (pressure, tool_data.smoothed_pressure) {
+						(Some(pressure), Some(smoothed)) => Some(smoothed + (pressure - smoothed) * alpha),
+						(pressure, _) => pressure,
+					};
+					tool_data.push_sample(tool_data.smoothed_position, tool_data.smoothed_pressure, input.mouse.time.unwrap_or(0.));
 					tool_data.last_sample = (input.mouse.position, pressure);
+					tool_data.last_time_millis = input.mouse.time.unwrap_or(0.);
 				}
 				tool_data.update_stroke(responses);
 
@@ -549,6 +608,8 @@ impl Fsm for BrushToolFsmState {
 
 			(BrushToolFsmState::Drawing, BrushToolMessage::DragStop) => {
 				if tool_data.stroke_node_id.is_some() {
+					tool_data.flush_stroke(document, tool_options);
+					tool_data.update_stroke(responses);
 					responses.add(DocumentMessage::EndTransaction);
 				} else {
 					responses.add(DocumentMessage::AbortTransaction);
