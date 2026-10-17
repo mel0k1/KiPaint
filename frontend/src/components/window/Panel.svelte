@@ -2,6 +2,7 @@
 	import { getContext, onDestroy, tick } from "svelte";
 	import LayoutCol from "/src/components/layout/LayoutCol.svelte";
 	import LayoutRow from "/src/components/layout/LayoutRow.svelte";
+	import Colors from "/src/components/panels/Colors.svelte";
 	import Data from "/src/components/panels/Data.svelte";
 	import Document from "/src/components/panels/Document.svelte";
 	import Inspector from "/src/components/panels/Inspector.svelte";
@@ -18,6 +19,7 @@
 		Document,
 		Layers,
 		Inspector,
+		Colors,
 		Data,
 	};
 	const BUTTON_LEFT = 0;

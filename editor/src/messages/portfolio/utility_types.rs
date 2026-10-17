@@ -2,6 +2,8 @@
 const DOCUMENT_PANEL_SHARE: f64 = 0.8;
 /// Proportional share for each side when neither (or both) contain the document panel.
 const EQUAL_PANEL_SHARE: f64 = 0.5;
+/// Proportional share of the right column given to the Colors/Inspector group (Layers gets the rest).
+const COLORS_PANELS_SHARE: f64 = 0.42;
 
 #[cfg_attr(feature = "wasm", derive(tsify::Tsify), tsify(from_wasm_abi))]
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
@@ -11,6 +13,7 @@ pub enum PanelType {
 	Layers,
 	#[serde(alias = "Properties")]
 	Inspector,
+	Colors,
 	Data,
 }
 
@@ -21,6 +24,7 @@ impl From<String> for PanelType {
 			"Document" => PanelType::Document,
 			"Layers" => PanelType::Layers,
 			"Inspector" | "Properties" => PanelType::Inspector,
+			"Colors" => PanelType::Colors,
 			"Data" => PanelType::Data,
 			_ => panic!("Unknown panel type: {value}"),
 		}
@@ -29,7 +33,7 @@ impl From<String> for PanelType {
 
 impl PanelType {
 	pub fn non_document_panels() -> &'static [PanelType] {
-		&[PanelType::Layers, PanelType::Inspector, PanelType::Data]
+		&[PanelType::Layers, PanelType::Inspector, PanelType::Colors, PanelType::Data]
 	}
 }
 
@@ -376,7 +380,7 @@ impl Default for WorkspacePanelLayout {
 		// Default layout (sizes are recalculated by `recalculate_default_sizes` before being sent to the frontend):
 		// Row [
 		//   Column [Document]
-		//   Column [Inspector, Layers]
+		//   Column [ [Colors, Inspector], Layers ]
 		// ]
 		Self {
 			root: PanelLayoutSubdivision::Split {
@@ -403,11 +407,11 @@ impl Default for WorkspacePanelLayout {
 									subdivision: PanelLayoutSubdivision::PanelGroup {
 										id: PanelGroupId(1),
 										state: PanelGroupState {
-											tabs: vec![PanelType::Inspector],
+											tabs: vec![PanelType::Colors, PanelType::Inspector],
 											active_tab_index: 0,
 										},
 									},
-									size: EQUAL_PANEL_SHARE,
+									size: COLORS_PANELS_SHARE,
 								},
 								SplitChild {
 									subdivision: PanelLayoutSubdivision::PanelGroup {
@@ -417,7 +421,7 @@ impl Default for WorkspacePanelLayout {
 											active_tab_index: 0,
 										},
 									},
-									size: EQUAL_PANEL_SHARE,
+									size: 1. - COLORS_PANELS_SHARE,
 								},
 							],
 						},

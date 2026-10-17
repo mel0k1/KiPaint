@@ -389,6 +389,7 @@ impl WorkspaceMessageHandler {
 		let targets: &[LayoutTarget] = match panel_type {
 			PanelType::Inspector => &[LayoutTarget::Inspector],
 			PanelType::Layers => &[LayoutTarget::LayersPanelControlLeftBar, LayoutTarget::LayersPanelBottomLeftBar, LayoutTarget::LayersPanelBottomRightBar],
+			PanelType::Colors => return,
 			PanelType::Data => &[LayoutTarget::DataPanel],
 			PanelType::Document | PanelType::Welcome => return,
 		};
@@ -412,6 +413,9 @@ impl WorkspaceMessageHandler {
 						messages: vec![NodeGraphMessage::UpdateLayerPanel.into(), DocumentMessage::DocumentStructureChanged.into()],
 					});
 				}
+			}
+			PanelType::Colors => {
+				// The Colors panel keeps its state in the frontend and syncs via the working colors layout updates
 			}
 			PanelType::Data => {
 				// The Data panel's content is populated automatically as a side effect of the graph run completing, so there's nothing to do here
