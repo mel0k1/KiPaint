@@ -1,0 +1,313 @@
+use super::utility_types::Direction;
+use crate::messages::input_mapper::utility_types::keyboard::Key;
+use crate::messages::portfolio::document::node_graph::document_node_definitions::DefinitionIdentifier;
+use crate::messages::portfolio::document::utility_types::document_metadata::LayerNodeIdentifier;
+use crate::messages::portfolio::document::utility_types::network_interface::{ChainInsertionPoint, ChainNodeCopy, ImportOrExport, InputConnector, NodeTemplate, OutputConnector, RootNode};
+use crate::messages::prelude::*;
+use glam::IVec2;
+use graph_craft::document::value::TaggedValue;
+use graph_craft::document::{NodeId, NodeInput};
+use graph_craft::proto::GraphErrors;
+use interpreted_executor::dynamic_executor::ResolvedDocumentNodeTypesDelta;
+
+#[impl_message(Message, DocumentMessage, NodeGraph)]
+#[derive(PartialEq, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub enum NodeGraphMessage {
+	AddNodes {
+		nodes: Vec<(NodeId, NodeTemplate)>,
+		new_ids: HashMap<NodeId, NodeId>,
+	},
+	AddPathNode,
+	AddImport,
+	/// Adds the import at `import_index` wired to `input_connector`, from a wire dragged out of a dimmed connector for adding one.
+	/// Index 0 fills the empty primary, and any other is the next secondary import.
+	AddImportAndConnect {
+		import_index: usize,
+		input_connector: InputConnector,
+	},
+	/// Inserts a Passthrough node beside the import that takes over the wires it fed, so nodes can be placed in front of all of them at once.
+	AddImportPassthrough {
+		import_index: usize,
+	},
+	AddExport,
+	AddPrimaryExport,
+	AddSecondaryExport,
+	Init,
+	SelectedNodesUpdated,
+	Copy,
+	CreateNodeInLayerNoTransaction {
+		node_type: DefinitionIdentifier,
+		layer: LayerNodeIdentifier,
+	},
+	CreateNodeInLayerWithTransaction {
+		node_type: DefinitionIdentifier,
+		layer: LayerNodeIdentifier,
+	},
+	CreateNodeFromContextMenu {
+		node_id: Option<NodeId>,
+		node_type: DefinitionIdentifier,
+		xy: Option<(i32, i32)>,
+		add_transaction: bool,
+	},
+	CreateWire {
+		output_connector: OutputConnector,
+		input_connector: InputConnector,
+	},
+	ConnectUpstreamOutputToInput {
+		downstream_input: InputConnector,
+		input_connector: InputConnector,
+	},
+	Cut,
+	DeleteNodes {
+		node_ids: Vec<NodeId>,
+		delete_children: bool,
+	},
+	DeleteSelectedNodes {
+		delete_children: bool,
+	},
+	DisconnectInput {
+		input_connector: InputConnector,
+	},
+	/// Disconnects every wire an import feeds, or the wire feeding an export.
+	DisconnectImportExport {
+		index: ImportOrExport,
+	},
+	DisconnectRootNode,
+	SetRootNodeToRestore {
+		root_node_to_restore: RootNode,
+	},
+	EnterNestedNetwork,
+	DuplicateSelectedNodes,
+	ExposeInput {
+		input_connector: InputConnector,
+		set_to_exposed: bool,
+		start_transaction: bool,
+	},
+	/// Whether the subgraph node shows its input for an import as a connector rather than as a parameter in the Inspector.
+	/// A hidden primary import also disappears from the subgraph.
+	ExposeEncapsulatingInput {
+		input_index: usize,
+		exposed: bool,
+	},
+	ExposePrimaryExport {
+		exposed: bool,
+	},
+	InsertNode {
+		node_id: NodeId,
+		// Boxed to reduce size of enum (1120 bytes to 8 bytes)
+		node_template: Box<NodeTemplate>,
+	},
+	InsertNodeBetween {
+		node_id: NodeId,
+		input_connector: InputConnector,
+		insert_node_input_index: usize,
+	},
+	MergeSelectedNodes,
+	MoveLayerToStack {
+		layer: LayerNodeIdentifier,
+		parent: LayerNodeIdentifier,
+		insert_index: usize,
+	},
+	MoveNodeToChainStart {
+		node_id: NodeId,
+		parent: LayerNodeIdentifier,
+	},
+	MoveChainNodes {
+		node_ids: Vec<NodeId>,
+		layer: NodeId,
+		insert_index: usize,
+	},
+	DuplicateChainNodes {
+		node_ids: Vec<NodeId>,
+		destination: Option<(NodeId, usize)>,
+		select_copies: bool,
+	},
+	DuplicateNodesInFlow {
+		node_ids: Vec<NodeId>,
+	},
+	PasteIntoChain {
+		target: ChainInsertionPoint,
+		copies: Vec<ChainNodeCopy>,
+	},
+	ReorderPinnedNode {
+		node_id: NodeId,
+		insert_index: usize,
+	},
+	SetChainPosition {
+		node_id: NodeId,
+	},
+	InsertNodes {
+		nodes: Vec<(NodeId, NodeTemplate)>,
+	},
+	PointerDown {
+		shift_click: bool,
+		control_click: bool,
+		alt_click: bool,
+		right_click: bool,
+	},
+	PointerMove {
+		shift: Key,
+	},
+	PointerUp,
+	PointerOutsideViewport {
+		shift: Key,
+	},
+	/// Sent every frame while a dragged wire hovers a node, to expand it once the hover delay passes.
+	WireHoverTick,
+	ShakeNode,
+	UpdateNodeGraphWidth,
+	RemoveImport {
+		import_index: usize,
+	},
+	RemoveExport {
+		export_index: usize,
+	},
+	/// Removes an import or export, or hides it if it's the primary, since the primary slot always remains.
+	RemoveImportExport {
+		index: ImportOrExport,
+	},
+	ReorderImport {
+		start_index: usize,
+		end_index: usize,
+	},
+	ReorderExport {
+		start_index: usize,
+		end_index: usize,
+	},
+	RunDocumentGraph,
+	ForceRunDocumentGraph,
+	SelectedNodesAdd {
+		nodes: Vec<NodeId>,
+	},
+	SelectedNodesRemove {
+		nodes: Vec<NodeId>,
+	},
+	SelectedNodesSet {
+		nodes: Vec<NodeId>,
+	},
+	SendClickTargets,
+	EndSendClickTargets,
+	UnloadWires,
+	SendWires,
+	UpdateVisibleNodes,
+	SendGraph,
+	SetInputValue {
+		node_id: NodeId,
+		input_index: usize,
+		value: Box<TaggedValue>,
+	},
+	SetInput {
+		input_connector: InputConnector,
+		input: NodeInput,
+	},
+	/// Asks the frontend to enter inline-rename mode for the given layer's display name in the graph view.
+	/// Triggered by double-clicking the layer's name area.
+	BeginEditLayerName {
+		node_id: NodeId,
+	},
+	SetDisplayName {
+		node_id: NodeId,
+		/// The path to the network containing `node_id`. Empty for nodes at the root document network.
+		/// Lets the rename target a node at any nesting depth, independent of the current selection network.
+		network_path: Vec<NodeId>,
+		alias: String,
+		skip_adding_history_step: bool,
+	},
+	SetDisplayNameImpl {
+		node_id: NodeId,
+		network_path: Vec<NodeId>,
+		alias: String,
+	},
+	SetToNodeOrLayer {
+		node_id: NodeId,
+		is_layer: bool,
+	},
+	ShiftNodePosition {
+		node_id: NodeId,
+		x: i32,
+		y: i32,
+	},
+	/// Moves the selected nodes one grid cell with the arrow keys, as an undo step of its own.
+	NudgeSelectedNodes {
+		direction: Direction,
+	},
+	ShiftSelectedNodes {
+		direction: Direction,
+		rubber_band: bool,
+	},
+	ShiftSelectedNodesByAmount {
+		graph_delta: IVec2,
+		rubber_band: bool,
+	},
+	TogglePreview {
+		node_id: NodeId,
+	},
+	TogglePreviewImpl {
+		node_id: NodeId,
+	},
+	SetImportExportName {
+		name: String,
+		index: ImportOrExport,
+	},
+	SetImportExportNameImpl {
+		name: String,
+		index: ImportOrExport,
+	},
+	SetImportExportDescription {
+		description: String,
+		index: ImportOrExport,
+	},
+	SetImportExportDescriptionImpl {
+		description: String,
+		index: ImportOrExport,
+	},
+	ToggleSelectedAsLayersOrNodes,
+	ToggleSelectedLocked,
+	ToggleLocked {
+		node_id: NodeId,
+		/// The path to the network containing `node_id`. Empty for nodes at the root document network.
+		/// Lets the toggle target a node at any nesting depth, independent of the current selection network.
+		network_path: Vec<NodeId>,
+	},
+	SetLocked {
+		node_id: NodeId,
+		network_path: Vec<NodeId>,
+		locked: bool,
+	},
+	ToggleSelectedIsPinned,
+	ToggleSelectedVisibility,
+	ToggleVisibility {
+		node_id: NodeId,
+		/// The path to the network containing `node_id`. Empty for nodes at the root document network.
+		/// Lets the toggle target a node at any nesting depth, independent of the current selection network.
+		network_path: Vec<NodeId>,
+	},
+	SetPinned {
+		node_id: NodeId,
+		pinned: bool,
+	},
+	SetVisibility {
+		node_id: NodeId,
+		network_path: Vec<NodeId>,
+		visible: bool,
+	},
+	SetLockedOrVisibilitySideEffects {
+		node_ids: Vec<NodeId>,
+		network_path: Vec<NodeId>,
+	},
+	UpdateBoxSelection,
+	UpdateImportsExports,
+	UpdateLayerPanel,
+	UpdateNewNodeGraph,
+	UpdateTypes {
+		#[serde(skip)]
+		resolved_types: ResolvedDocumentNodeTypesDelta,
+		#[serde(skip)]
+		node_graph_errors: GraphErrors,
+	},
+	UpdateActionButtons,
+	UpdateGraphBarRight,
+	UpdateInSelectedNetwork,
+	UpdateHints,
+	SendSelectedNodes,
+}

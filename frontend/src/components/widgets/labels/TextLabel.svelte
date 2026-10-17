@@ -1,0 +1,175 @@
+<script lang="ts">
+	import { onMount, onDestroy } from "svelte";
+	import { widgetSizingStyles } from "/src/utility-functions/widgets";
+	import type { ActionShortcut, WidgetSizing } from "/wrapper/pkg/graphite_wasm_wrapper";
+
+	let className = "";
+	export { className as class };
+	export let classes: Record<string, boolean> = {};
+	let styleName = "";
+	export { styleName as style };
+	export let styles: Record<string, string | number | undefined> = {};
+
+	// Content
+	// `value` is passed via slot
+	export let disabled = false;
+	export let forCheckbox: bigint | undefined = undefined;
+	// Styling
+	export let narrow = false;
+	export let bold = false;
+	export let italic = false;
+	export let monospace = false;
+	export let multiline = false;
+	export let enquote = false;
+	export let selectable = false;
+	export let centerAlign = false;
+	export let tableAlign = false;
+	export let sizing: Partial<WidgetSizing> | undefined = undefined;
+	export let minWidthCharacters = 0;
+	// Tooltips
+	export let tooltipLabel: string | undefined = undefined;
+	export let tooltipDescription: string | undefined = undefined;
+	export let tooltipShortcut: ActionShortcut | undefined = undefined;
+
+	let self: HTMLLabelElement | undefined;
+
+	$: extraClasses = Object.entries(classes)
+		.flatMap(([className, stateName]) => (stateName ? [className] : []))
+		.join(" ");
+	$: extraStyles = Object.entries({
+		...styles,
+		...widgetSizingStyles(sizing),
+		...(minWidthCharacters ? { "min-width": `${minWidthCharacters}ch` } : {}),
+	})
+		.flatMap((styleAndValue) => (styleAndValue[1] !== undefined ? [`${styleAndValue[0]}: ${styleAndValue[1]};`] : []))
+		.join(" ");
+
+	$: watchForCheckbox(forCheckbox);
+
+	function watchForCheckbox(forCheckbox: bigint | undefined) {
+		if (!self) return;
+
+		self.removeEventListener("pointerenter", handlePointerEnter);
+		self.removeEventListener("pointerleave", handlePointerLeave);
+
+		if (forCheckbox !== undefined) {
+			self.addEventListener("pointerenter", handlePointerEnter);
+			self.addEventListener("pointerleave", handlePointerLeave);
+		}
+	}
+
+	function handlePointerEnter() {
+		document.querySelector(`[data-checkbox-label="${forCheckbox}"]`)?.classList.add("label-is-hovered");
+	}
+
+	function handlePointerLeave() {
+		document.querySelector(`[data-checkbox-label="${forCheckbox}"]`)?.classList.remove("label-is-hovered");
+	}
+
+	onMount(() => watchForCheckbox(forCheckbox));
+	onDestroy(() => {
+		handlePointerLeave();
+		watchForCheckbox(undefined);
+	});
+</script>
+
+<label
+	class={`text-label ${className} ${extraClasses}`.trim()}
+	class:disabled
+	class:narrow
+	class:bold
+	class:italic
+	class:monospace
+	class:multiline
+	class:enquote
+	class:selectable
+	class:center-align={centerAlign}
+	class:table-align={tableAlign}
+	style={`${styleName} ${extraStyles}`.trim() || undefined}
+	data-tooltip-label={tooltipLabel}
+	data-tooltip-description={tooltipDescription}
+	data-tooltip-shortcut={tooltipShortcut?.shortcut ? JSON.stringify(tooltipShortcut.shortcut) : undefined}
+	for={forCheckbox !== undefined ? `checkbox-input-${forCheckbox}` : undefined}
+	on:click
+	on:dblclick
+	bind:this={self}
+>
+	<slot />
+</label>
+
+<style lang="scss">
+	.text-label {
+		line-height: 18px;
+		white-space: nowrap;
+		// Force Safari to not draw a text cursor, even though this element has `user-select: none`
+		cursor: default;
+
+		&.narrow.narrow {
+			--widget-height: 20px;
+		}
+
+		&.disabled {
+			color: var(--color-8-uppergray);
+		}
+
+		&.bold {
+			font-weight: 700;
+		}
+
+		&.italic {
+			font-style: italic;
+		}
+
+		&.monospace,
+		code {
+			font-family: "Source Code Pro", monospace;
+			font-size: 12px;
+		}
+
+		&.multiline {
+			white-space: pre-wrap;
+			margin: 4px 0;
+		}
+
+		&.enquote::before,
+		&.enquote::after {
+			content: '"';
+			user-select: none;
+		}
+
+		&.selectable {
+			user-select: text;
+			cursor: text;
+		}
+
+		&.center-align.center-align {
+			text-align: center;
+			margin-inline: auto;
+		}
+
+		&.table-align {
+			flex: 0 1 30%;
+			text-align: right;
+		}
+
+		a {
+			color: inherit;
+		}
+
+		code {
+			background: var(--color-3-darkgray);
+			padding: 0 2px;
+		}
+
+		pre {
+			margin: 4px 0 0;
+			padding: 2px 4px;
+			background: var(--color-3-darkgray);
+			white-space: pre-wrap;
+
+			code {
+				padding: 0;
+			}
+		}
+	}
+</style>
