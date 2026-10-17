@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use crate::common::*;
 
-const EXECUTABLE: &str = "Graphite.exe";
+const EXECUTABLE: &str = "KiPaint.exe";
 
 pub fn main() -> Result<(), Box<dyn Error>> {
 	let app_bin = build_bin("graphite-desktop-platform-win", None, None)?;

@@ -3,7 +3,7 @@ fn main() {
 	{
 		let mut res = winres::WindowsResource::new();
 
-		res.set_icon("../../../branding/app-icons/graphite.ico");
+		res.set_icon("../../../branding/app-icons/kipaint.ico");
 
 		res.set_language(0x0409); // English (US)
 
@@ -18,14 +18,14 @@ fn main() {
 		res.set("FileVersion", "0.0.0.0");
 		res.set("ProductVersion", "0.0.0.0");
 
-		res.set("OriginalFilename", "Graphite.exe");
+		res.set("OriginalFilename", "KiPaint.exe");
 
-		res.set("FileDescription", "Graphite");
-		res.set("ProductName", "Graphite");
+		res.set("FileDescription", "KiPaint");
+		res.set("ProductName", "KiPaint");
 
 		// TODO: Pull this year from the Git commit date
-		res.set("LegalCopyright", "Copyright © 2026 Graphite Labs, LLC");
-		res.set("CompanyName", "Graphite Labs, LLC");
+		res.set("LegalCopyright", "Copyright © 2026 KiPaint contributors");
+		res.set("CompanyName", "KiPaint contributors");
 
 		res.compile().expect("Failed to compile Windows resources");
 	}

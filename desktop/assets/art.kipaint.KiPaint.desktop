@@ -1,11 +1,11 @@
 [Desktop Entry]
-Name=Graphite
-GenericName=Vector & Raster Graphics Editor
-Comment=Open-source vector & raster graphics editor. Featuring node based procedural nondestructive editing workflow.
+Name=KiPaint
+GenericName=Painting, Comics & Manga Editor
+Comment=Free open-source painting app for illustration, comics and manga. Built in Rust.
 Exec=graphite
 Terminal=false
 Type=Application
-Icon=art.graphite.Graphite
-Categories=Graphics;VectorGraphics;RasterGraphics;
-Keywords=graphite;editor;vector;raster;procedural;design;
-StartupWMClass=art.graphite.Graphite
+Icon=art.kipaint.KiPaint
+Categories=Graphics;RasterGraphics;VectorGraphics;
+Keywords=kipaint;painting;drawing;manga;comics;illustration;brush;
+StartupWMClass=art.kipaint.KiPaint

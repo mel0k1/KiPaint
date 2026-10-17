@@ -29,7 +29,7 @@ fn dispatch_event(event: AppEvent) {
 }
 
 fn instance() -> objc2::rc::Retained<NSApplication> {
-	unsafe { msg_send![GraphiteApplication::class(), sharedApplication] }
+	unsafe { msg_send![KiPaintApplication::class(), sharedApplication] }
 }
 
 static INSTALL_DELEGATE: Once = Once::new();
@@ -39,7 +39,7 @@ pub(super) fn init() {
 
 	INSTALL_DELEGATE.call_once(|| {
 		let mtm = MainThreadMarker::new().expect("should only ever be called from main thread");
-		let delegate: Retained<GraphiteApplicationDelegate> = unsafe { msg_send![super(GraphiteApplicationDelegate::alloc(mtm).set_ivars(())), init] };
+		let delegate: Retained<KiPaintApplicationDelegate> = unsafe { msg_send![super(KiPaintApplicationDelegate::alloc(mtm).set_ivars(())), init] };
 		instance().setDelegate(Some(ProtocolObject::from_ref(&*delegate)));
 		std::mem::forget(delegate);
 	});
@@ -73,10 +73,10 @@ pub(super) fn show_all() {
 
 define_class!(
 	#[unsafe(super(NSApplication, NSResponder, NSObject))]
-	#[name = "GraphiteApplication"]
-	pub(super) struct GraphiteApplication;
+	#[name = "KiPaintApplication"]
+	pub(super) struct KiPaintApplication;
 
-	impl GraphiteApplication {
+	impl KiPaintApplication {
 		#[unsafe(method(sendEvent:))]
 		fn send_event(&self, event: &NSEvent) {
 			// Route keyDown events straight to the key window to skip native menu shortcut handling.
@@ -92,12 +92,12 @@ define_class!(
 define_class!(
 	#[unsafe(super(NSObject))]
 	#[thread_kind = MainThreadOnly]
-	#[name = "GraphiteApplicationDelegate"]
-	struct GraphiteApplicationDelegate;
+	#[name = "KiPaintApplicationDelegate"]
+	struct KiPaintApplicationDelegate;
 
-	unsafe impl NSObjectProtocol for GraphiteApplicationDelegate {}
+	unsafe impl NSObjectProtocol for KiPaintApplicationDelegate {}
 
-	unsafe impl NSApplicationDelegate for GraphiteApplicationDelegate {
+	unsafe impl NSApplicationDelegate for KiPaintApplicationDelegate {
 		#[unsafe(method(application:openURLs:))]
 		fn application_open_urls(&self, _application: &NSApplication, urls: &NSArray<NSURL>) {
 			let paths = (0..urls.count())
