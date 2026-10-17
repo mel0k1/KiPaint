@@ -9,14 +9,14 @@ Goal: a Clip Studio Paint-class painting workflow on the Graphite engine — nat
 
 ## Phase 1 — Identity & Layout
 
-- [ ] Rebrand desktop app: name, app id, icons, window title, about dialog
-- [ ] CSP-style default panel layout: toolbar left, tool options, layers + inspector right, status bar
+- [x] Rebrand desktop app: name, app id, icons, window title, about dialog
+- [x] CSP-style default panel layout: toolbar left, tool options, colors + layers right, status bar
 - [ ] Dark painting-first theme and original icon set
 - [ ] Keymap audit: match CSP defaults (B brush, E eraser, G fill, L lasso…), user-configurable
 
 ## Phase 2 — Brush Engine MVP
 
-- [ ] Line stabilization (post-filter and predictive smoothing, per-brush strength)
+- [x] Line stabilization (exponential smoothing with catch-up flush, per-brush strength slider)
 - [ ] Pressure curve editor + velocity-based dynamics
 - [ ] Per-brush opacity (separate from flow), brush textures, eraser mode
 - [ ] Extend brush node params: tilt and twist influence, stroke seed variation
