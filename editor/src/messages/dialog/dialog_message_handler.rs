@@ -1,4 +1,4 @@
-use super::simple_dialogs::{self, AboutGraphiteDialog, DemoArtworkDialog, LicensesDialog};
+use super::simple_dialogs::{self, AboutKiPaintDialog, DemoArtworkDialog, LicensesDialog};
 use crate::application::GRAPHITE_GIT_COMMIT_DATE;
 use crate::messages::dialog::simple_dialogs::{ConfirmRestartDialog, LicensesThirdPartyDialog};
 use crate::messages::frontend::utility_types::ExportBounds;
@@ -60,18 +60,18 @@ impl MessageHandler<DialogMessage, DialogMessageContext<'_>> for DialogMessageHa
 				let dialog = simple_dialogs::ErrorDialog { title, description };
 				dialog.send_dialog_to_frontend(responses);
 			}
-			DialogMessage::RequestAboutGraphiteDialog => {
+			DialogMessage::RequestAboutKiPaintDialog => {
 				self.on_dismiss = Some(DialogMessage::Close.into());
-				responses.add(FrontendMessage::TriggerAboutGraphiteLocalizedCommitDate {
+				responses.add(FrontendMessage::TriggerAboutKiPaintLocalizedCommitDate {
 					commit_date: GRAPHITE_GIT_COMMIT_DATE.into(),
 				});
 			}
-			DialogMessage::RequestAboutGraphiteDialogWithLocalizedCommitDate {
+			DialogMessage::RequestAboutKiPaintDialogWithLocalizedCommitDate {
 				localized_commit_date,
 				localized_commit_year,
 			} => {
 				self.on_dismiss = Some(DialogMessage::Close.into());
-				let dialog = AboutGraphiteDialog {
+				let dialog = AboutKiPaintDialog {
 					localized_commit_date,
 					localized_commit_year,
 				};

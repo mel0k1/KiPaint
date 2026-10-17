@@ -86,7 +86,7 @@ pub enum FrontendMessage {
 	},
 
 	// Trigger prefix: cause a frontend specific API to do something
-	TriggerAboutGraphiteLocalizedCommitDate {
+	TriggerAboutKiPaintLocalizedCommitDate {
 		#[serde(rename = "commitDate")]
 		commit_date: String,
 	},

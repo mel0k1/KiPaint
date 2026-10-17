@@ -275,7 +275,7 @@ mod editor_commands {
 	}
 
 	fn request_about_graphite_dialog_with_localized_commit_date(localized_commit_date: String, localized_commit_year: String) -> Message {
-		DialogMessage::RequestAboutGraphiteDialogWithLocalizedCommitDate {
+		DialogMessage::RequestAboutKiPaintDialogWithLocalizedCommitDate {
 			localized_commit_date,
 			localized_commit_year,
 		}

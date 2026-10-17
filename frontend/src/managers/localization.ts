@@ -11,9 +11,9 @@ export function createLocalizationManager(subscriptions: SubscriptionsRouter, ed
 	subscriptionsRouter = subscriptions;
 	editorWrapper = editor;
 
-	subscriptions.subscribeFrontendMessage("TriggerAboutGraphiteLocalizedCommitDate", (data) => {
+	subscriptions.subscribeFrontendMessage("TriggerAboutKiPaintLocalizedCommitDate", (data) => {
 		const localized = localizeTimestamp(data.commitDate);
-		editor.requestAboutGraphiteDialogWithLocalizedCommitDate(localized.timestamp, localized.year);
+		editor.requestAboutKiPaintDialogWithLocalizedCommitDate(localized.timestamp, localized.year);
 	});
 }
 
@@ -21,7 +21,7 @@ export function destroyLocalizationManager() {
 	const subscriptions = subscriptionsRouter;
 	if (!subscriptions) return;
 
-	subscriptions.unsubscribeFrontendMessage("TriggerAboutGraphiteLocalizedCommitDate");
+	subscriptions.unsubscribeFrontendMessage("TriggerAboutKiPaintLocalizedCommitDate");
 }
 
 // Self-accepting HMR: tear down the old instance and re-create with the new module's code

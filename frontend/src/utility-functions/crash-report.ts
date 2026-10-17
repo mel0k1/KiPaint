@@ -2,7 +2,7 @@ import { browserVersion, operatingSystem } from "/src/utility-functions/platform
 import { stripIndents } from "/src/utility-functions/strip-indents";
 
 export function crashReportUrl(panicDetails: string): string {
-	const url = new URL("https://github.com/GraphiteEditor/Graphite/issues/new");
+	const url = new URL("https://github.com/mel0k1/KiPaint/issues/new");
 
 	const buildUrl = (includeCrashReport: boolean) => {
 		let body = stripIndents`
@@ -11,7 +11,7 @@ export function crashReportUrl(panicDetails: string): string {
 
 			**Steps To Reproduce**
 			Describe precisely how the crash occurred, step by step, starting with a new editor window.
-			1. Open the Graphite editor at https://dev.graphite.art — IMPORTANT! Confirm you have tested in this development version. It may have already been fixed since the last stable release.
+			1. Open KiPaint and reproduce the issue.
 			2.
 			3.
 			4.
@@ -24,7 +24,7 @@ export function crashReportUrl(panicDetails: string): string {
 			${browserVersion()}, ${operatingSystem()}
 
 			**Stack Trace**
-			Copied from the crash dialog in the Graphite editor:
+			Copied from the crash dialog in KiPaint:
 		`;
 
 		const manualCopyStackTraceNotice = stripIndents`

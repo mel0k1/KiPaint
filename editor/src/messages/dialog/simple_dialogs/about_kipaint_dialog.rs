@@ -2,15 +2,15 @@ use crate::application::commit_info_localized;
 use crate::messages::layout::utility_types::widget_prelude::*;
 use crate::messages::prelude::*;
 
-/// A dialog for displaying information on [BuildMetadata] viewable via *Help* > *About Graphite* in the menu bar.
-pub struct AboutGraphiteDialog {
+/// A dialog for displaying information on [BuildMetadata] viewable via *Help* > *About KiPaint* in the menu bar.
+pub struct AboutKiPaintDialog {
 	pub localized_commit_date: String,
 	pub localized_commit_year: String,
 }
 
-impl DialogLayoutHolder for AboutGraphiteDialog {
+impl DialogLayoutHolder for AboutKiPaintDialog {
 	const ICON: &'static str = "GraphiteLogo";
-	const TITLE: &'static str = "About Graphite";
+	const TITLE: &'static str = "About KiPaint";
 
 	fn layout_buttons(&self) -> Layout {
 		let widgets = vec![TextButton::new("OK").emphasized(true).on_update(|_| FrontendMessage::DialogClose.into()).widget_instance()];
@@ -20,10 +20,9 @@ impl DialogLayoutHolder for AboutGraphiteDialog {
 
 	fn layout_column_2(&self) -> Layout {
 		let links = [
-			("Heart", "Donate", "https://graphite.art/donate/"),
-			("GraphiteLogo", "Website", "https://graphite.art"),
-			("Volunteer", "Volunteer", "https://graphite.art/volunteer/"),
-			("Credits", "Credits", "https://github.com/GraphiteEditor/Graphite/graphs/contributors"),
+			("GraphiteLogo", "Source Code", "https://github.com/mel0k1/KiPaint"),
+			("Volunteer", "Report an Issue", "https://github.com/mel0k1/KiPaint/issues"),
+			("Heart", "Upstream Project: Graphite", "https://graphite.art/donate/"),
 		];
 		let mut widgets = links
 			.into_iter()
@@ -55,12 +54,13 @@ impl DialogLayoutHolder for AboutGraphiteDialog {
 	}
 }
 
-impl LayoutHolder for AboutGraphiteDialog {
+impl LayoutHolder for AboutKiPaintDialog {
 	fn layout(&self) -> Layout {
 		Layout(vec![
 			LayoutGroup::row(vec![TextLabel::new("About this release").bold(true).widget_instance()]),
 			LayoutGroup::row(vec![TextLabel::new(commit_info_localized(&self.localized_commit_date)).multiline(true).widget_instance()]),
-			LayoutGroup::row(vec![TextLabel::new(format!("Copyright © {} Graphite contributors", self.localized_commit_year)).widget_instance()]),
+			LayoutGroup::row(vec![TextLabel::new(format!("Copyright © {} KiPaint contributors", self.localized_commit_year)).widget_instance()]),
+		LayoutGroup::row(vec![TextLabel::new("Built on the Graphite engine (Apache-2.0). CLIP STUDIO PAINT is a trademark of Celsys, Inc.; KiPaint is not affiliated with Celsys.").multiline(true).widget_instance()]),
 		])
 	}
 }

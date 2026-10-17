@@ -62,19 +62,19 @@ impl LayoutHolder for MenuBarMessageHandler {
 		let show_storage_preferences = self.show_storage_preferences;
 		let make_path_editable_is_allowed = self.make_path_editable_is_allowed;
 
-		let about = MenuListEntry::new("About Graphite…")
+		let about = MenuListEntry::new("About KiPaint…")
 			.label({
 				#[cfg(not(target_os = "macos"))]
 				{
-					"About Graphite…"
+					"About KiPaint…"
 				}
 				#[cfg(target_os = "macos")]
 				{
-					"About Graphite"
+					"About KiPaint"
 				}
 			})
 			.icon("GraphiteLogo")
-			.on_commit(|_| DialogMessage::RequestAboutGraphiteDialog.into());
+			.on_commit(|_| DialogMessage::RequestAboutKiPaintDialog.into());
 		let preferences = MenuListEntry::new("Preferences…")
 			.label("Preferences…")
 			.icon("Settings")

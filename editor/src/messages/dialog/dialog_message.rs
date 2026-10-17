@@ -22,8 +22,8 @@ pub enum DialogMessage {
 		title: String,
 		description: String,
 	},
-	RequestAboutGraphiteDialog,
-	RequestAboutGraphiteDialogWithLocalizedCommitDate {
+	RequestAboutKiPaintDialog,
+	RequestAboutKiPaintDialogWithLocalizedCommitDate {
 		localized_commit_date: String,
 		localized_commit_year: String,
 	},
