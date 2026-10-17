@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff6b6b"/>
+      <stop offset="1" stop-color="#7c5cff"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="8" width="48" height="48" rx="10.5" fill="url(#g)"/>
+  <path d="M15.5 16h7v32h-7z M23.8 30.5l10-14.5h8.2L30.9 30l11.8 18h-8.5L23.8 30.5z" fill="#fff"/>
+  <circle cx="43.6" cy="19" r="3.4" fill="#ffd93d"/>
+  <text x="66" y="46" font-family="Verdana, 'DejaVu Sans', Arial, sans-serif" font-size="34" font-weight="bold" font-style="italic" fill="#ffffff">KiPaint</text>
+</svg>

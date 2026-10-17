@@ -714,7 +714,7 @@ import FrameSelected from "/../branding/assets/16x16-ui-general/frame-selected.s
 import Gradient from "/../branding/assets/16x16-ui-general/gradient.svg";
 import GraphViewClosed from "/../branding/assets/16x16-ui-general/graph-view-closed.svg";
 import GraphViewOpen from "/../branding/assets/16x16-ui-general/graph-view-open.svg";
-import GraphiteLogo from "/../branding/assets/16x16-ui-general/graphite-logo.svg";
+import GraphiteLogo from "/../branding/assets/kipaint-logo.svg";
 import HandleVisibilityAll from "/../branding/assets/16x16-ui-general/handle-visibility-all.svg";
 import HandleVisibilityFrontier from "/../branding/assets/16x16-ui-general/handle-visibility-frontier.svg";
 import HandleVisibilitySelected from "/../branding/assets/16x16-ui-general/handle-visibility-selected.svg";
@@ -1016,7 +1016,7 @@ const ICON_24X24_TOOLS = {
 } as const;
 
 // Other graphics
-import GraphiteLogotype from "/../branding/assets/graphite-logotype.svg";
+import GraphiteLogotype from "/../branding/assets/kipaint-logotype.svg";
 
 // All icons
 const ICON_LIST = {
