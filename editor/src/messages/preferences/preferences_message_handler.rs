@@ -63,7 +63,7 @@ impl Default for PreferencesMessageHandler {
 		Self {
 			selection_mode: SelectionMode::Touched,
 			zoom_with_scroll: matches!(MappingVariant::default(), MappingVariant::ZoomWithScroll),
-			brush_tool: false,
+			brush_tool: true,
 			graph_wire_style: GraphWireStyle::default(),
 			viewport_zoom_wheel_rate: VIEWPORT_ZOOM_WHEEL_RATE,
 			ui_scale: UI_SCALE_DEFAULT,

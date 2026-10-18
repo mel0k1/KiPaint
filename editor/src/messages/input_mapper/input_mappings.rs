@@ -326,7 +326,7 @@ pub fn input_mappings(zoom_with_scroll: bool) -> Mapping {
 		entry!(KeyDown(KeyN); action_dispatch=ToolMessage::ActivateToolFreehand),
 		entry!(KeyDown(KeyL); action_dispatch=ToolMessage::ActivateToolShapeLine),
 		entry!(KeyDown(KeyM); action_dispatch=ToolMessage::ActivateToolShapeRectangle),
-		entry!(KeyDown(KeyE); action_dispatch=ToolMessage::ActivateToolShapeEllipse),
+		entry!(KeyDown(KeyE); modifiers=[Shift], action_dispatch=ToolMessage::ActivateToolShapeEllipse),
 		entry!(KeyDown(KeyY); action_dispatch=ToolMessage::ActivateToolShape),
 		entry!(KeyDown(KeyB); action_dispatch=ToolMessage::ActivateToolBrush),
 		entry!(KeyDown(KeyD); action_dispatch=ToolMessage::ResetColors),
@@ -470,6 +470,7 @@ pub fn input_mappings(zoom_with_scroll: bool) -> Mapping {
 		// AnimationMessage
 		entry!(KeyDown(Space); modifiers=[Shift], action_dispatch=AnimationMessage::ToggleLivePreview),
 		entry!(KeyDown(Home); modifiers=[Shift], action_dispatch=AnimationMessage::RestartAnimation),
+		entry!(KeyDown(KeyG); action_dispatch=ToolMessage::ActivateToolFill),
 	];
 	let (mut key_up, mut key_down, mut key_up_no_repeat, mut key_down_no_repeat, mut double_click, mut double_tap, mut wheel_scroll, mut pointer_move, mut pointer_shake) = mappings;
 
