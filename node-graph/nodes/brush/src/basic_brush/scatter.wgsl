@@ -13,6 +13,9 @@ struct Uniforms {
 	kernel_scale: f32,
 	kernel_exponent: f32,
 	kernel_section_scale: f32,
+	noise_offset: vec2<f32>,
+	noise_div: f32,
+	texture_strength: f32,
 };
 
 @group(0) @binding(0)
@@ -82,6 +85,32 @@ fn section(r2: f32) -> f32 {
 	return exp(-pow(max(r2 * 0.5, 1e-20), uniforms.kernel_exponent));
 }
 
+fn hash(p: vec2<f32>) -> f32 {
+	var q = fract(p * vec2f(0.1031, 0.1030));
+	q += dot(q, q.yx + vec2f(33.33));
+	return fract((q.x + q.y) * q.x);
+}
+
+fn value_noise(p: vec2<f32>) -> f32 {
+	let i = floor(p);
+	let f = fract(p);
+	let u = f * f * (3.0 - 2.0 * f);
+	let a = hash(i);
+	let b = hash(i + vec2f(1.0, 0.0));
+	let c = hash(i + vec2f(0.0, 1.0));
+	let d = hash(i + vec2f(1.0, 1.0));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+// Layer-space grain that modulates the brush density, giving strokes a textured look
+fn grain(p: vec2<f32>) -> f32 {
+	if (uniforms.texture_strength <= 0.0) {
+		return 1.0;
+	}
+	let n = value_noise((p + uniforms.noise_offset) / uniforms.noise_div);
+	return mix(1.0, n, uniforms.texture_strength);
+}
+
 struct FragmentOutput {
 	@location(0) density: f32,
 	@location(1) stamp: f32,
@@ -94,7 +123,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 	let d = in.b - in.a;
 	let len = length(d);
 	if (len < 1e-6) {
-		let dab = in.weight * section(dot(p - in.a, p - in.a) * inv_section * inv_section);
+		let dab = in.weight * section(dot(p - in.a, p - in.a) * inv_section * inv_section) * grain(p);
 		return FragmentOutput(dab, dab);
 	}
 	let e = d / len;
@@ -113,5 +142,5 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 	let overhang = max(max(-along, along - len), 0.0);
 	let stamp = in.weight * section((perp2 + overhang * overhang) * inv_section * inv_section);
 
-	return FragmentOutput(in.weight * max(ridge, 0.0), stamp);
+	return FragmentOutput(in.weight * max(ridge, 0.0) * grain(p), stamp * grain(p));
 }

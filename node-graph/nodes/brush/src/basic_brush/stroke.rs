@@ -22,6 +22,8 @@ pub(super) struct StyledStroke {
 	pub(super) diameter: f64,
 	pub(super) hardness: f64,
 	pub(super) flow: f64,
+	pub(super) texture_strength: f64,
+	pub(super) texture_scale: f64,
 	pub(super) stroke: Stroke,
 }
 
@@ -188,6 +190,8 @@ mod tests {
 			diameter: 20.,
 			hardness: 0.8,
 			flow: 1.,
+			texture_strength: 0.,
+			texture_scale: 8.,
 			stroke: Stroke {
 				position: points.iter().copied().map(DVec2::from).collect(),
 				..Default::default()

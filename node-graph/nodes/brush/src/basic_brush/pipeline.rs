@@ -22,6 +22,10 @@ struct ScatterUniforms {
 	kernel_exponent: f32,
 	kernel_section_scale: f32,
 	_pad: f32,
+	noise_offset: [f32; 2],
+	noise_div: f32,
+	texture_strength: f32,
+	_pad2: [f32; 2],
 }
 
 #[repr(C)]
@@ -422,10 +426,13 @@ impl<'a> Recorder<'a> {
 		});
 	}
 
-	pub(super) fn scatter(&mut self, target: &FieldViews, edges: &[Edge], kernel: &Kernel) {
+	pub(super) fn scatter(&mut self, target: &FieldViews, edges: &[Edge], kernel: &Kernel, stroke: &StyledStroke) {
 		if edges.is_empty() {
 			return;
 		}
+		// Noise coordinates are anchored to layer space so the texture stays put across viewport changes
+		let noise_div = (self.region.scale as f32 * stroke.texture_scale.max(1.) as f32).max(1e-6);
+		let texture_strength = stroke.texture_strength.clamp(0., 1.) as f32;
 		let globals = self.executor.create_buffer_init(&wgpu::util::BufferInitDescriptor {
 			label: Some("basic_brush_scatter_uniform"),
 			contents: bytemuck::bytes_of(&ScatterUniforms {
@@ -434,6 +441,10 @@ impl<'a> Recorder<'a> {
 				kernel_exponent: kernel.exponent,
 				kernel_section_scale: kernel.section_scale,
 				_pad: 0.,
+				noise_offset: [self.region.min.x as f32 * self.region.scale as f32, self.region.min.y as f32 * self.region.scale as f32],
+				noise_div,
+				texture_strength,
+				_pad2: [0.; 2],
 			}),
 			usage: wgpu::BufferUsages::UNIFORM,
 		});

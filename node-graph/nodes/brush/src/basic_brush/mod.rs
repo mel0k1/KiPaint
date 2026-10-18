@@ -7,7 +7,7 @@ mod render;
 mod stroke;
 
 use brush_types::BrushCache;
-use core_types::list::{ATTR_COLOR, ATTR_DIAMETER, ATTR_FLOW, ATTR_HARDNESS, Item, List};
+use core_types::list::{ATTR_COLOR, ATTR_DIAMETER, ATTR_FLOW, ATTR_HARDNESS, ATTR_TEXTURE_SCALE, ATTR_TEXTURE_STRENGTH, Item, List};
 use core_types::{ATTR_TRANSFORM, Ctx, ExtractFootprint};
 use graphic_types::Graphic;
 use pipeline::{BasicBrushPipeline, BasicBrushPipelineArgs};
@@ -33,6 +33,8 @@ pub async fn basic_brush<'a: 'n>(
 		let diameter = item.attribute_cloned_or(ATTR_DIAMETER, crate::DEFAULT_DIAMETER);
 		let hardness = item.attribute_cloned_or(ATTR_HARDNESS, crate::DEFAULT_HARDNESS / 100.);
 		let flow = item.attribute_cloned_or(ATTR_FLOW, crate::DEFAULT_FLOW / 100.);
+		let texture_strength = item.attribute_cloned_or(ATTR_TEXTURE_STRENGTH, crate::DEFAULT_TEXTURE_STRENGTH);
+		let texture_scale = item.attribute_cloned_or(ATTR_TEXTURE_SCALE, crate::DEFAULT_TEXTURE_SCALE);
 		match item.into_element() {
 			Graphic::StrokeList(list) => strokes.extend(
 				list.into_iter()
@@ -43,6 +45,8 @@ pub async fn basic_brush<'a: 'n>(
 						diameter,
 						hardness,
 						flow,
+						texture_strength,
+						texture_scale,
 						stroke,
 					}),
 			),

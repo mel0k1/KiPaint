@@ -324,7 +324,7 @@ impl StrokeRenderer<'_, '_> {
 		match tail {
 			Tail::Commit => {
 				update.committed.append(&mut update.tail);
-				self.recorder.scatter(&views, &update.committed, &kernel);
+				self.recorder.scatter(&views, &update.committed, &kernel, stroke);
 				self.recorder.resolve(stroke.color, self.crop, &views, target.view, target.scissor);
 				if let Density::Owned(field) = density {
 					self.recorder.keep(field.density);
@@ -333,7 +333,7 @@ impl StrokeRenderer<'_, '_> {
 				None
 			}
 			Tail::Preview => {
-				self.recorder.scatter(&views, &update.committed, &kernel);
+				self.recorder.scatter(&views, &update.committed, &kernel, stroke);
 				if update.tail.is_empty() {
 					self.recorder.resolve(stroke.color, self.crop, &views, target.view, target.scissor);
 				} else {
@@ -341,7 +341,7 @@ impl StrokeRenderer<'_, '_> {
 					self.recorder.copy_texture(&field.density, &self.scratch.density);
 					self.recorder.copy_texture(&field.stamp, &self.scratch.stamp);
 					let scratch_views = self.scratch.views();
-					self.recorder.scatter(&scratch_views, &update.tail, &kernel);
+					self.recorder.scatter(&scratch_views, &update.tail, &kernel, stroke);
 					self.recorder.resolve(stroke.color, self.crop, &scratch_views, target.view, target.scissor);
 				}
 				let Density::Owned(field) = density else { unreachable!() };
@@ -362,6 +362,8 @@ fn stroke_key(stroke: &StyledStroke) -> StrokeKey {
 	stroke.diameter.cache_hash(&mut hasher);
 	stroke.hardness.cache_hash(&mut hasher);
 	stroke.flow.cache_hash(&mut hasher);
+	stroke.texture_strength.cache_hash(&mut hasher);
+	stroke.texture_scale.cache_hash(&mut hasher);
 	StrokeKey(hasher.finish())
 }
 
@@ -370,6 +372,8 @@ fn density_key(stroke: &StyledStroke) -> DensityKey {
 	(stroke.diameter.max(0.) as f32).to_bits().hash(&mut hasher);
 	(stroke.hardness.clamp(0., 1.) as f32).to_bits().hash(&mut hasher);
 	(stroke.flow.clamp(0., 1.) as f32).to_bits().hash(&mut hasher);
+	(stroke.texture_strength.clamp(0., 1.) as f32).to_bits().hash(&mut hasher);
+	(stroke.texture_scale.max(1.) as f32).to_bits().hash(&mut hasher);
 	DensityKey(hasher.finish())
 }
 
@@ -400,6 +404,8 @@ mod tests {
 			diameter: 20.,
 			hardness: 0.8,
 			flow: 1.,
+			texture_strength: 0.,
+			texture_scale: 8.,
 			stroke: Stroke {
 				position: vec![DVec2::new(1., 2.), DVec2::new(3., 4.), DVec2::new(5., 6.)],
 				pressure: Channel::Samples(vec![0.2, 0.4, 0.6]),

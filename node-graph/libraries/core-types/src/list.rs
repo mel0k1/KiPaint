@@ -24,6 +24,10 @@ pub const ATTR_OPACITY: &str = "opacity";
 pub const ATTR_OPACITY_FILL: &str = "opacity_fill";
 /// `bool` for whether an item inherits the alpha of the content beneath it (clipping mask).
 pub const ATTR_CLIPPING_MASK: &str = "clipping_mask";
+/// Item's brush texture strength (`f64`, implicit default `0.` — texture disabled).
+pub const ATTR_TEXTURE_STRENGTH: &str = "texture_strength";
+/// Item's brush texture scale in layer pixels (`f64`, implicit default `8.`).
+pub const ATTR_TEXTURE_SCALE: &str = "texture_scale";
 /// `NodeIdPath` path from the root network to the layer node owning this item.
 /// Used by editor tools to route clicks/selection back to the originating layer.
 pub const ATTR_EDITOR_LAYER_PATH: &str = "editor:layer_path";

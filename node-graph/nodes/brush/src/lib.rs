@@ -1,4 +1,4 @@
-use core_types::list::{ATTR_COLOR, ATTR_DIAMETER, ATTR_FLOW, ATTR_HARDNESS, Item, List};
+use core_types::list::{ATTR_COLOR, ATTR_DIAMETER, ATTR_FLOW, ATTR_HARDNESS, ATTR_TEXTURE_SCALE, ATTR_TEXTURE_STRENGTH, Item, List};
 use core_types::{Color, Ctx};
 use graphic_types::Graphic;
 
@@ -11,6 +11,8 @@ pub(crate) const DEFAULT_DIAMETER: f64 = 40.;
 pub(crate) const DEFAULT_HARDNESS: f64 = 0.;
 pub(crate) const DEFAULT_FLOW: f64 = 100.;
 pub(crate) const DEFAULT_COLOR: Color = Color::BLACK;
+pub(crate) const DEFAULT_TEXTURE_STRENGTH: f64 = 0.;
+pub(crate) const DEFAULT_TEXTURE_SCALE: f64 = 8.;
 
 #[node_macro::node(category("Raster: Brush"), icon("NodeBrushStrokes"))]
 fn brush_strokes(
@@ -31,13 +33,25 @@ fn brush_strokes(
 	#[hard(0..100)]
 	#[default(100.)]
 	flow: Item<f64>,
+	#[unit("%")]
+	#[range]
+	#[hard(0..100)]
+	#[default(0.)]
+	texture_strength: Item<f64>,
+	#[unit(" px")]
+	#[hard(1..)]
+	#[default(8.)]
+	texture_scale: Item<f64>,
 ) -> List<Graphic> {
 	let (diameter, hardness, flow) = (diameter.into_element(), hardness.into_element(), flow.into_element());
+	let (texture_strength, texture_scale) = (texture_strength.into_element(), texture_scale.into_element());
 	List::new_from_item(
 		Item::new_from_element(Graphic::from(strokes))
 			.with_attribute(ATTR_COLOR, color.element(0).copied().unwrap_or_default())
 			.with_attribute(ATTR_DIAMETER, diameter)
 			.with_attribute(ATTR_HARDNESS, hardness / 100.)
-			.with_attribute(ATTR_FLOW, flow / 100.),
+			.with_attribute(ATTR_FLOW, flow / 100.)
+			.with_attribute(ATTR_TEXTURE_STRENGTH, texture_strength / 100.)
+			.with_attribute(ATTR_TEXTURE_SCALE, texture_scale),
 	)
 }
