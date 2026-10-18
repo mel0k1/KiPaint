@@ -120,6 +120,8 @@ pub enum GraphOperationMessage {
 		diameter: f64,
 		hardness: f64,
 		flow: f64,
+		texture_strength: f64,
+		texture_scale: f64,
 		eraser: bool,
 	},
 	NewBrushStrokesNode {
@@ -129,6 +131,8 @@ pub enum GraphOperationMessage {
 		diameter: f64,
 		hardness: f64,
 		flow: f64,
+		texture_strength: f64,
+		texture_scale: f64,
 		eraser: bool,
 	},
 	SetUpstreamToChain {

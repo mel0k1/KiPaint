@@ -183,10 +183,12 @@ impl MessageHandler<GraphOperationMessage, GraphOperationMessageContext<'_>> for
 				diameter,
 				hardness,
 				flow,
+				texture_strength,
+				texture_scale,
 				eraser,
 			} => {
 				let layer = ModifyInputsContext::new(network_interface, responses).create_layer(id);
-				insert_brush_strokes_chain(network_interface, layer, strokes_node_id, color, diameter, hardness, flow);
+				insert_brush_strokes_chain(network_interface, layer, strokes_node_id, color, diameter, hardness, flow, texture_strength, texture_scale);
 
 				responses.add(NodeGraphMessage::MoveLayerToStack { layer, parent, insert_index });
 				responses.add(GraphOperationMessage::SetUpstreamToChain { layer });
@@ -202,9 +204,11 @@ impl MessageHandler<GraphOperationMessage, GraphOperationMessageContext<'_>> for
 				diameter,
 				hardness,
 				flow,
+				texture_strength,
+				texture_scale,
 				eraser,
 			} => {
-				insert_brush_strokes_chain(network_interface, layer, strokes_node_id, color, diameter, hardness, flow);
+				insert_brush_strokes_chain(network_interface, layer, strokes_node_id, color, diameter, hardness, flow, texture_strength, texture_scale);
 
 				responses.add(GraphOperationMessage::SetUpstreamToChain { layer });
 				responses.add(NodeGraphMessage::RunDocumentGraph);
@@ -888,7 +892,7 @@ fn import_usvg_node_inner(
 	}
 }
 
-fn insert_brush_strokes_chain(network_interface: &mut NodeNetworkInterface, layer: LayerNodeIdentifier, strokes_node_id: NodeId, color: Color, diameter: f64, hardness: f64, flow: f64) {
+fn insert_brush_strokes_chain(network_interface: &mut NodeNetworkInterface, layer: LayerNodeIdentifier, strokes_node_id: NodeId, color: Color, diameter: f64, hardness: f64, flow: f64, texture_strength: f64, texture_scale: f64) {
 	let Some(strokes_node_type) = resolve_proto_node_type(graphene_std::brush::brush_strokes::IDENTIFIER) else {
 		log::error!("Brush strokes node does not exist");
 		return;
@@ -899,6 +903,8 @@ fn insert_brush_strokes_chain(network_interface: &mut NodeNetworkInterface, laye
 		Some(NodeInput::value(TaggedValue::Number(diameter), false)),
 		Some(NodeInput::value(TaggedValue::Number(hardness), false)),
 		Some(NodeInput::value(TaggedValue::Number(flow), false)),
+		Some(NodeInput::value(TaggedValue::Number(texture_strength), false)),
+		Some(NodeInput::value(TaggedValue::Number(texture_scale), false)),
 	]);
 	network_interface.insert_node(strokes_node_id, strokes_node, &[]);
 	network_interface.set_input(&InputConnector::node_at_index(layer.to_node(), 1), NodeInput::node(strokes_node_id, 0), &[]);

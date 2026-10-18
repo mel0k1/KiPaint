@@ -1,6 +1,6 @@
 use super::tool_prelude::*;
 use crate::application::generate_uuid;
-use crate::consts::{BRUSH_FLOW_DEFAULT, BRUSH_HARDNESS_DEFAULT, BRUSH_PRESSURE_GAMMA_DEFAULT, BRUSH_SIZE_DEFAULT, BRUSH_STABILIZATION_DEFAULT};
+use crate::consts::{BRUSH_FLOW_DEFAULT, BRUSH_HARDNESS_DEFAULT, BRUSH_PRESSURE_GAMMA_DEFAULT, BRUSH_SIZE_DEFAULT, BRUSH_STABILIZATION_DEFAULT, BRUSH_TEXTURE_SCALE_DEFAULT, BRUSH_TEXTURE_STRENGTH_DEFAULT};
 use crate::messages::portfolio::document::graph_operation::transform_utils::get_current_transform;
 use crate::messages::portfolio::document::node_graph::document_node_definitions::{DefinitionIdentifier, resolve_proto_node_type};
 use crate::messages::portfolio::document::utility_types::document_metadata::LayerNodeIdentifier;
@@ -35,6 +35,8 @@ pub struct BrushOptions {
 	flow: f64,
 	pressure_gamma: f64,
 	stabilization: f64,
+	texture_strength: f64,
+	texture_scale: f64,
 	color: ToolColorOptions,
 	scale_with_viewport: bool,
 	last_synced_selection: Vec<LayerNodeIdentifier>,
@@ -49,6 +51,8 @@ impl Default for BrushOptions {
 			flow: BRUSH_FLOW_DEFAULT,
 			pressure_gamma: BRUSH_PRESSURE_GAMMA_DEFAULT,
 			stabilization: BRUSH_STABILIZATION_DEFAULT,
+			texture_strength: BRUSH_TEXTURE_STRENGTH_DEFAULT,
+			texture_scale: BRUSH_TEXTURE_SCALE_DEFAULT,
 			color: ToolColorOptions::default(),
 			scale_with_viewport: false,
 			last_synced_selection: Vec::new(),
@@ -97,6 +101,8 @@ pub enum BrushToolMessageOptionsUpdate {
 	Flow(f64),
 	PressureGamma(f64),
 	Stabilization(f64),
+	TextureStrength(f64),
+	TextureScale(f64),
 	ScaleWithViewport(bool),
 	WorkingColorsChanged,
 }
@@ -261,6 +267,52 @@ impl LayoutHolder for BrushTool {
 					.into()
 				})
 				.widget_instance(),
+			PopoverButton::new()
+				.popover_layout(Layout(vec![LayoutGroup::row({
+					let strength_label = "Texture Strength";
+					let strength_description = "Modulates the brush density with a procedural grain texture anchored to the layer.";
+					let scale_label = "Texture Scale";
+					let scale_description = "The size of the texture grain in layer pixels.";
+					vec![
+						TextLabel::new(strength_label)
+							.tooltip_label(strength_label)
+							.tooltip_description(strength_description)
+							.widget_instance(),
+						NumberInput::new(Some(self.options.texture_strength))
+							.tooltip_label(strength_label)
+							.tooltip_description(strength_description)
+							.min(0.)
+							.max(100.)
+							.mode_range()
+							.unit("%")
+							.on_update(|number_input: &NumberInput| {
+								BrushToolMessage::UpdateOptions {
+									options: BrushToolMessageOptionsUpdate::TextureStrength(number_input.value.unwrap()),
+								}
+								.into()
+							})
+							.widget_instance(),
+						TextLabel::new(scale_label)
+							.tooltip_label(scale_label)
+							.tooltip_description(scale_description)
+							.widget_instance(),
+						NumberInput::new(Some(self.options.texture_scale))
+							.tooltip_label(scale_label)
+							.tooltip_description(scale_description)
+							.min(1.)
+							.max(64.)
+							.unit(" px")
+							.on_update(|number_input: &NumberInput| {
+								BrushToolMessage::UpdateOptions {
+									options: BrushToolMessageOptionsUpdate::TextureScale(number_input.value.unwrap()),
+								}
+								.into()
+							})
+							.widget_instance(),
+					]
+				})]))
+				.tooltip_label("Texture")
+				.widget_instance(),
 		];
 
 		Layout(vec![LayoutGroup::row(widgets)])
@@ -300,6 +352,8 @@ impl<'a> MessageHandler<ToolMessage, &mut ToolActionMessageContext<'a>> for Brus
 			BrushToolMessageOptionsUpdate::Flow(flow) => self.options.flow = flow,
 			BrushToolMessageOptionsUpdate::PressureGamma(gamma) => self.options.pressure_gamma = gamma,
 			BrushToolMessageOptionsUpdate::Stabilization(stabilization) => self.options.stabilization = stabilization,
+			BrushToolMessageOptionsUpdate::TextureStrength(strength) => self.options.texture_strength = strength,
+			BrushToolMessageOptionsUpdate::TextureScale(scale) => self.options.texture_scale = scale,
 			BrushToolMessageOptionsUpdate::Color(color) => {
 				if let Some(color) = color {
 					responses.add(ToolMessage::SelectWorkingColor { color, primary: true });
@@ -358,6 +412,12 @@ impl BrushTool {
 		}
 		if let Some(TaggedValue::Number(flow)) = value(brush_strokes::FlowInput::INDEX) {
 			self.options.flow = *flow;
+		}
+		if let Some(TaggedValue::Number(texture_strength)) = value(brush_strokes::TextureStrengthInput::INDEX) {
+			self.options.texture_strength = *texture_strength;
+		}
+		if let Some(TaggedValue::Number(texture_scale)) = value(brush_strokes::TextureScaleInput::INDEX) {
+			self.options.texture_scale = *texture_scale;
 		}
 		if let Some(TaggedValue::Color(color)) = value(brush_strokes::ColorInput::INDEX)
 			&& *color != self.options.active_color()
@@ -488,6 +548,8 @@ impl BrushToolData {
 				(*diameter - target).abs() <= diameter.abs().max(target.abs()) * (f64::EPSILON * 8.)
 			}) && matches!(value(brush_strokes::HardnessInput::INDEX), Some(TaggedValue::Number(hardness)) if *hardness == options.hardness)
 			&& matches!(value(brush_strokes::FlowInput::INDEX), Some(TaggedValue::Number(flow)) if *flow == options.flow)
+		&& matches!(value(brush_strokes::TextureStrengthInput::INDEX), Some(TaggedValue::Number(strength)) if *strength == options.texture_strength)
+		&& matches!(value(brush_strokes::TextureScaleInput::INDEX), Some(TaggedValue::Number(scale)) if *scale == options.texture_scale)
 	}
 
 	fn push_sample(&mut self, position: DVec2, pressure: Option<f64>, elapsed_milliseconds: f64) {
@@ -605,6 +667,8 @@ impl Fsm for BrushToolFsmState {
 							diameter: tool_options.stroke_diameter(document),
 							hardness: tool_options.hardness,
 							flow: tool_options.flow,
+							texture_strength: tool_options.texture_strength,
+							texture_scale: tool_options.texture_scale,
 							eraser: tool_options.eraser,
 						});
 						responses.add(NodeGraphMessage::SelectedNodesSet { nodes: vec![group_id] });
@@ -620,6 +684,8 @@ impl Fsm for BrushToolFsmState {
 							diameter: tool_options.stroke_diameter(document),
 							hardness: tool_options.hardness,
 							flow: tool_options.flow,
+							texture_strength: tool_options.texture_strength,
+							texture_scale: tool_options.texture_scale,
 							eraser: tool_options.eraser,
 						});
 					}
