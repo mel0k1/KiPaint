@@ -1,5 +1,5 @@
 use crate::render_ext::{PaintTarget, RenderExt};
-use crate::to_peniko::{BlendModeExt, ToPenikoColor};
+use crate::to_peniko::{BlendModeExt, ToPenikoColor, to_peniko_blend_mode};
 use core_types::CacheHash;
 use core_types::FallibleVec2Operations;
 use core_types::blending::{BlendMode, apply_blend_mode};
@@ -888,8 +888,8 @@ fn render_graphic_item_to_vello<'a>(
 	let mut layer = false;
 
 	let blend_mode = match render_params.render_mode {
-		RenderMode::Outline => peniko::Mix::Normal,
-		_ => blend_mode_attr.to_peniko(),
+		RenderMode::Outline => peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::SrcOver),
+		_ => to_peniko_blend_mode(&blend_mode_attr),
 	};
 	let mut bounds = RenderBoundingBox::None;
 
@@ -900,7 +900,7 @@ fn render_graphic_item_to_vello<'a>(
 		if let RenderBoundingBox::Rectangle(bounds) = bounds {
 			scene.push_layer(
 				peniko::Fill::NonZero,
-				peniko::BlendMode::new(blend_mode, peniko::Compose::SrcOver),
+				blend_mode,
 				opacity,
 				kurbo::Affine::IDENTITY,
 				&kurbo::Rect::new(bounds[0].x, bounds[0].y, bounds[1].x, bounds[1].y),
@@ -1081,7 +1081,23 @@ impl Render for Graphic {
 			Graphic::Color(item) => render_color_item_to_vello(ItemRef::Item(item), scene, render_params),
 			Graphic::Gradient(item) => render_gradient_item_to_vello(ItemRef::Item(item), scene, transform, render_params),
 			Graphic::Text(item) => render_text_item_to_vello(ItemRef::Item(item), scene, transform, render_params),
-			Graphic::GraphicList(list) => list.render_to_vello(scene, transform, context, render_params),
+			Graphic::GraphicList(list) => {
+				// Blend modes that modify the backdrop's alpha would otherwise reach content rendered beneath this list, so isolate the list when a child uses one
+				let backdrop_modifying = list
+					.iter_attribute_values_or_default::<BlendMode>(ATTR_BLEND_MODE)
+					.any(|blend_mode| matches!(blend_mode, BlendMode::Erase | BlendMode::Restore | BlendMode::MultiplyAlpha));
+				if backdrop_modifying {
+					let rect = match list.bounding_box(transform, true) {
+						RenderBoundingBox::Rectangle(bounds) => kurbo::Rect::new(bounds[0].x, bounds[0].y, bounds[1].x, bounds[1].y),
+						_ => kurbo::Rect::new(-1.0e9, -1.0e9, 1.0e9, 1.0e9),
+					};
+					scene.push_layer(peniko::Fill::NonZero, peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::SrcOver), 1., kurbo::Affine::IDENTITY, &rect);
+					list.render_to_vello(scene, transform, context, render_params);
+					scene.pop_layer();
+				} else {
+					list.render_to_vello(scene, transform, context, render_params);
+				}
+			}
 			Graphic::VectorList(list) => list.render_to_vello(scene, transform, context, render_params),
 			Graphic::RasterCPUList(list) => list.render_to_vello(scene, transform, context, render_params),
 			Graphic::RasterGPUList(list) => list.render_to_vello(scene, transform, context, render_params),
@@ -1748,8 +1764,8 @@ fn render_vector_item_to_vello(
 
 	// If we're using opacity or a blend mode, we need to push a layer
 	let blend_mode = match render_params.render_mode {
-		RenderMode::Outline => peniko::Mix::Normal,
-		_ => blend_mode_attr.to_peniko(),
+		RenderMode::Outline => peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::SrcOver),
+		_ => to_peniko_blend_mode(&blend_mode_attr),
 	};
 	let mut layer = false;
 
@@ -1782,7 +1798,7 @@ fn render_vector_item_to_vello(
 
 	if needs_blend_layer && let Some((layer_affine, layer_rect)) = layer_geometry {
 		layer = true;
-		scene.push_layer(peniko::Fill::NonZero, peniko::BlendMode::new(blend_mode, peniko::Compose::SrcOver), opacity, layer_affine, &layer_rect);
+		scene.push_layer(peniko::Fill::NonZero, blend_mode, opacity, layer_affine, &layer_rect);
 	}
 
 	// Pushed inside the blend layer so the mask cuts this item's own paint rather than the composited result
@@ -2400,7 +2416,7 @@ fn render_raster_cpu_item_to_vello(item: ItemRef<'_, Raster<CPU>>, scene: &mut S
 	let blend_mode_attr: BlendMode = item.attribute_cloned_or_default(ATTR_BLEND_MODE);
 	let opacity_attr: f64 = item.attribute_cloned_or(ATTR_OPACITY, 1.);
 	let opacity_fill_attr: f64 = item.attribute_cloned_or(ATTR_OPACITY_FILL, 1.);
-	let blend_mode = blend_mode_attr.to_peniko();
+	let blend_mode = to_peniko_blend_mode(&blend_mode_attr);
 
 	let opacity = (opacity_attr * if render_params.for_mask { 1. } else { opacity_fill_attr }) as f32;
 	let mut layer = false;
@@ -2412,9 +2428,8 @@ fn render_raster_cpu_item_to_vello(item: ItemRef<'_, Raster<CPU>>, scene: &mut S
 	if (opacity < 1. || (render_params.render_mode != RenderMode::Outline && blend_mode_attr != BlendMode::default()))
 		&& let RenderBoundingBox::Rectangle(bounds) = whole_bounds()
 	{
-		let blending = peniko::BlendMode::new(blend_mode, peniko::Compose::SrcOver);
 		let rect = kurbo::Rect::new(bounds[0].x, bounds[0].y, bounds[1].x, bounds[1].y);
-		scene.push_layer(peniko::Fill::NonZero, blending, opacity, kurbo::Affine::IDENTITY, &rect);
+		scene.push_layer(peniko::Fill::NonZero, blend_mode, opacity, kurbo::Affine::IDENTITY, &rect);
 		layer = true;
 	}
 
@@ -2540,8 +2555,8 @@ fn render_raster_gpu_item_to_vello(item: ItemRef<'_, Raster<GPU>>, scene: &mut S
 	let opacity_fill_attr: f64 = item.attribute_cloned_or(ATTR_OPACITY_FILL, 1.);
 	let clip_attr: bool = item.attribute_cloned_or_default(ATTR_CLIPPING_MASK);
 	let blend_mode = match render_params.render_mode {
-		RenderMode::Outline => peniko::Mix::Normal,
-		_ => blend_mode_attr.to_peniko(),
+		RenderMode::Outline => peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::SrcOver),
+		_ => to_peniko_blend_mode(&blend_mode_attr),
 	};
 
 	let mut layer = false;
@@ -2555,9 +2570,8 @@ fn render_raster_gpu_item_to_vello(item: ItemRef<'_, Raster<GPU>>, scene: &mut S
 	if (render_params.render_mode != RenderMode::Outline && any_nondefault)
 		&& let RenderBoundingBox::Rectangle(bounds) = whole_bounds()
 	{
-		let blending = peniko::BlendMode::new(blend_mode, peniko::Compose::SrcOver);
 		let rect = kurbo::Rect::new(bounds[0].x, bounds[0].y, bounds[1].x, bounds[1].y);
-		scene.push_layer(peniko::Fill::NonZero, blending, opacity, kurbo::Affine::IDENTITY, &rect);
+		scene.push_layer(peniko::Fill::NonZero, blend_mode, opacity, kurbo::Affine::IDENTITY, &rect);
 		layer = true;
 	}
 
@@ -2661,7 +2675,7 @@ fn render_color_item_to_vello(item: ItemRef<'_, Color>, scene: &mut Scene, rende
 	let blend_mode_attr: BlendMode = item.attribute_cloned_or_default(ATTR_BLEND_MODE);
 	let opacity_attr: f64 = item.attribute_cloned_or(ATTR_OPACITY, 1.);
 	let opacity_fill_attr: f64 = item.attribute_cloned_or(ATTR_OPACITY_FILL, 1.);
-	let blend_mode = blend_mode_attr.to_peniko();
+	let blend_mode = to_peniko_blend_mode(&blend_mode_attr);
 	let opacity = (opacity_attr * if render_params.for_mask { 1. } else { opacity_fill_attr }) as f32;
 
 	let vello_color = SRGBA8::from(*color).to_peniko_color();
@@ -2670,8 +2684,7 @@ fn render_color_item_to_vello(item: ItemRef<'_, Color>, scene: &mut Scene, rende
 
 	let mut layer = false;
 	if opacity < 1. || blend_mode_attr != BlendMode::default() {
-		let blending = peniko::BlendMode::new(blend_mode, peniko::Compose::SrcOver);
-		scene.push_layer(peniko::Fill::NonZero, blending, opacity, kurbo::Affine::scale(f64::INFINITY), &rect);
+		scene.push_layer(peniko::Fill::NonZero, blend_mode, opacity, kurbo::Affine::scale(f64::INFINITY), &rect);
 		layer = true;
 	}
 
@@ -2861,7 +2874,7 @@ fn render_gradient_item_to_vello(item: ItemRef<'_, Gradient>, scene: &mut Scene,
 		let opacity_fill_attr: f64 = item.attribute_cloned_or(ATTR_OPACITY_FILL, 1.);
 		let gradient_transform = parent_transform * transform;
 
-		let blend_mode = blend_mode_attr.to_peniko();
+		let blend_mode = to_peniko_blend_mode(&blend_mode_attr);
 		let opacity = (opacity_attr * if render_params.for_mask { 1. } else { opacity_fill_attr }) as f32;
 
 		let settings = gradient_settings_from_item(item);
@@ -2900,9 +2913,8 @@ fn render_gradient_item_to_vello(item: ItemRef<'_, Gradient>, scene: &mut Scene,
 
 		let mut layer = false;
 		if opacity < 1. || blend_mode_attr != BlendMode::default() {
-			let blending = peniko::BlendMode::new(blend_mode, peniko::Compose::SrcOver);
 			// See implementation in `List<Color>` for more detail
-			scene.push_layer(peniko::Fill::NonZero, blending, opacity, kurbo::Affine::scale(f64::INFINITY), &rect);
+			scene.push_layer(peniko::Fill::NonZero, blend_mode, opacity, kurbo::Affine::scale(f64::INFINITY), &rect);
 			layer = true;
 		}
 
@@ -3291,7 +3303,7 @@ fn render_text_item_to_vello(item: ItemRef<'_, String>, scene: &mut Scene, trans
 		let needs_layer = opacity < 1. || blend_mode_attr != BlendMode::default();
 		if needs_layer {
 			let alignment_width = max_width.map(|w| w as f32).unwrap_or_else(|| layout.full_width());
-			let blending = peniko::BlendMode::new(blend_mode_attr.to_peniko(), peniko::Compose::SrcOver);
+			let blending = to_peniko_blend_mode(&blend_mode_attr);
 			let padding = font_size;
 			let bounds = kurbo::Rect::new(-padding, -padding, alignment_width as f64 + padding, layout.height() as f64 + padding);
 			let transformed_bounds = affine.transform_rect_bbox(bounds);

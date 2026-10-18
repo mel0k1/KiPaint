@@ -17,6 +17,16 @@ impl ToPenikoColor for SRGBA8 {
 	}
 }
 
+/// Maps a blend mode to its full peniko equivalent, including the Porter-Duff compose step used by modes that modify the backdrop's alpha.
+pub fn to_peniko_blend_mode(blend_mode: &BlendMode) -> peniko::BlendMode {
+	match blend_mode {
+		// Erase and Multiply Alpha only scale the backdrop's coverage, which Porter-Duff compose operations express directly
+		BlendMode::Erase => peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::DestOut),
+		BlendMode::MultiplyAlpha => peniko::BlendMode::new(peniko::Mix::Normal, peniko::Compose::DestIn),
+		blend_mode => peniko::BlendMode::new(blend_mode.to_peniko(), peniko::Compose::SrcOver),
+	}
+}
+
 impl BlendModeExt for BlendMode {
 	fn to_peniko(&self) -> peniko::Mix {
 		match self {
