@@ -91,7 +91,14 @@ impl ToolMessageHandler {
 				responses.add(ShapeToolMessage::SyncShapeWithOptions);
 				responses.add(ShapeToolMessage::HideShapeTypeWidget { hide: false })
 			}
-			ToolMessage::ActivateToolBrush => responses.add_front(ToolMessage::ActivateTool { tool_type: ToolType::Brush }),
+			ToolMessage::ActivateToolBrush => {
+				responses.add_front(ToolMessage::ActivateTool { tool_type: ToolType::Brush });
+				responses.add(BrushToolMessage::UpdateOptions { options: crate::messages::tool::tool_messages::brush_tool::BrushToolMessageOptionsUpdate::Eraser(false) });
+			}
+			ToolMessage::ActivateToolEraser => {
+				responses.add_front(ToolMessage::ActivateTool { tool_type: ToolType::Brush });
+				responses.add(BrushToolMessage::UpdateOptions { options: crate::messages::tool::tool_messages::brush_tool::BrushToolMessageOptionsUpdate::Eraser(true) });
+			}
 			ToolMessage::ActivateToolShapeLine | ToolMessage::ActivateToolShapeRectangle | ToolMessage::ActivateToolShapeEllipse => {
 				let shape = match message {
 					ToolMessage::ActivateToolShapeLine => Line,
@@ -469,6 +476,7 @@ impl ToolMessageHandler {
 		if preferences.brush_tool {
 			list.extend(actions!(ToolMessageDiscriminant;
 				ActivateToolBrush,
+				ActivateToolEraser,
 			));
 		}
 

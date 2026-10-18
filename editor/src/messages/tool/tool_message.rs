@@ -71,6 +71,7 @@ pub enum ToolMessage {
 	ActivateToolText,
 	// Raster tools
 	ActivateToolBrush,
+	ActivateToolEraser,
 
 	ActivateTool {
 		tool_type: ToolType,

@@ -12,6 +12,7 @@ use glam::{DAffine2, DVec2, IVec2};
 use graph_craft::document::value::TaggedValue;
 use graph_craft::document::{NodeId, NodeInput};
 use graph_craft::list;
+use graphene_std::raster::BlendMode;
 use graphene_std::renderer::convert_usvg_path::convert_usvg_path;
 use graphene_std::text::{Font, TypesettingConfig};
 use graphene_std::vector::style::{Gradient, GradientForm, GradientSettings, GradientSpace, GradientSpread, GradientStop, Stroke, StrokeAlign, StrokeCap, StrokeJoin};
@@ -182,6 +183,7 @@ impl MessageHandler<GraphOperationMessage, GraphOperationMessageContext<'_>> for
 				diameter,
 				hardness,
 				flow,
+				eraser,
 			} => {
 				let layer = ModifyInputsContext::new(network_interface, responses).create_layer(id);
 				insert_brush_strokes_chain(network_interface, layer, strokes_node_id, color, diameter, hardness, flow);
@@ -189,6 +191,9 @@ impl MessageHandler<GraphOperationMessage, GraphOperationMessageContext<'_>> for
 				responses.add(NodeGraphMessage::MoveLayerToStack { layer, parent, insert_index });
 				responses.add(GraphOperationMessage::SetUpstreamToChain { layer });
 				responses.add(NodeGraphMessage::RunDocumentGraph);
+				if eraser {
+					responses.add(GraphOperationMessage::BlendModeSet { layer, blend_mode: BlendMode::Erase });
+				}
 			}
 			GraphOperationMessage::NewBrushStrokesNode {
 				layer,
@@ -197,11 +202,15 @@ impl MessageHandler<GraphOperationMessage, GraphOperationMessageContext<'_>> for
 				diameter,
 				hardness,
 				flow,
+				eraser,
 			} => {
 				insert_brush_strokes_chain(network_interface, layer, strokes_node_id, color, diameter, hardness, flow);
 
 				responses.add(GraphOperationMessage::SetUpstreamToChain { layer });
 				responses.add(NodeGraphMessage::RunDocumentGraph);
+				if eraser {
+					responses.add(GraphOperationMessage::BlendModeSet { layer, blend_mode: BlendMode::Erase });
+				}
 			}
 			GraphOperationMessage::SetUpstreamToChain { layer } => {
 				let Some(OutputConnector::Node { node_id: first_chain_node, .. }) = network_interface.upstream_output_connector(&InputConnector::layer_secondary_input(layer.to_node()), &[]) else {

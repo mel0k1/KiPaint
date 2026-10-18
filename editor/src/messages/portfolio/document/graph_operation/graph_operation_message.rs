@@ -120,6 +120,7 @@ pub enum GraphOperationMessage {
 		diameter: f64,
 		hardness: f64,
 		flow: f64,
+		eraser: bool,
 	},
 	NewBrushStrokesNode {
 		layer: LayerNodeIdentifier,
@@ -128,6 +129,7 @@ pub enum GraphOperationMessage {
 		diameter: f64,
 		hardness: f64,
 		flow: f64,
+		eraser: bool,
 	},
 	SetUpstreamToChain {
 		layer: LayerNodeIdentifier,

@@ -6,12 +6,14 @@ use crate::messages::portfolio::document::node_graph::document_node_definitions:
 use crate::messages::portfolio::document::utility_types::document_metadata::LayerNodeIdentifier;
 use crate::messages::portfolio::document::utility_types::network_interface::{FlowType, InputConnector, OutputConnector};
 use crate::messages::tool::common_functionality::color_selector::{ToolColorOptions, selection_changed_since_last_sync, solid};
+use crate::messages::tool::common_functionality::graph_modification_utils;
 use crate::messages::tool::common_functionality::resize::viewport_zoom;
 use graph_craft::document::value::TaggedValue;
 use graph_craft::document::{NodeId, NodeInput};
 use graphene_std::Color;
 use graphene_std::NodeParameter;
 use graphene_std::brush::basic_brush::basic_brush as active_brush;
+use graphene_std::raster::BlendMode;
 use graphene_std::brush::{Channel, Stroke, brush_strokes};
 use graphene_std::color::SRGBA8;
 use graphene_std::vector::style::FillChoice;
@@ -27,6 +29,7 @@ pub struct BrushTool {
 }
 
 pub struct BrushOptions {
+	eraser: bool,
 	diameter: f64,
 	hardness: f64,
 	flow: f64,
@@ -40,6 +43,7 @@ pub struct BrushOptions {
 impl Default for BrushOptions {
 	fn default() -> Self {
 		Self {
+			eraser: false,
 			diameter: BRUSH_SIZE_DEFAULT,
 			hardness: BRUSH_HARDNESS_DEFAULT,
 			flow: BRUSH_FLOW_DEFAULT,
@@ -88,6 +92,7 @@ pub enum BrushToolMessageOptionsUpdate {
 	ChangeDiameter(f64),
 	Color(Option<Color>),
 	Diameter(f64),
+	Eraser(bool),
 	Hardness(f64),
 	Flow(f64),
 	PressureGamma(f64),
@@ -125,6 +130,29 @@ impl ToolEditTarget for BrushTool {
 impl LayoutHolder for BrushTool {
 	fn layout(&self) -> Layout {
 		let widgets = vec![
+			IconButton::new("RasterBrushTool", 24)
+				.tooltip_label("Paint")
+				.tooltip_description("Paint strokes with the current color.")
+				.emphasized(!self.options.eraser)
+				.on_update(|_| {
+					BrushToolMessage::UpdateOptions {
+						options: BrushToolMessageOptionsUpdate::Eraser(false),
+					}
+					.into()
+				})
+				.widget_instance(),
+			IconButton::new("Eraser", 24)
+				.tooltip_label("Eraser")
+				.tooltip_description("Erase the painted content of the current brush layer.")
+				.emphasized(self.options.eraser)
+				.on_update(|_| {
+					BrushToolMessage::UpdateOptions {
+						options: BrushToolMessageOptionsUpdate::Eraser(true),
+					}
+					.into()
+				})
+				.widget_instance(),
+			Separator::new(SeparatorStyle::Unrelated).widget_instance(),
 			ColorInput::new(FillChoice::<SRGBA8>::from(self.options.color.fill_choice.as_ref().unwrap_or(&FillChoice::None)))
 				.mixed(self.options.color.fill_choice.is_none())
 				.narrow(true)
@@ -267,6 +295,7 @@ impl<'a> MessageHandler<ToolMessage, &mut ToolActionMessageContext<'a>> for Brus
 				self.send_layout(responses, LayoutTarget::ToolOptions);
 			}
 			BrushToolMessageOptionsUpdate::Diameter(diameter) => self.options.diameter = diameter,
+			BrushToolMessageOptionsUpdate::Eraser(eraser) => self.options.eraser = eraser,
 			BrushToolMessageOptionsUpdate::Hardness(hardness) => self.options.hardness = hardness,
 			BrushToolMessageOptionsUpdate::Flow(flow) => self.options.flow = flow,
 			BrushToolMessageOptionsUpdate::PressureGamma(gamma) => self.options.pressure_gamma = gamma,
@@ -315,7 +344,8 @@ impl ToolTransition for BrushTool {
 
 impl BrushTool {
 	fn sync_options_from_selection(&mut self, document: &DocumentMessageHandler, responses: &mut VecDeque<Message>) {
-		let Some(strokes_node) = selected_strokes_node(document) else { return };
+		let Some((group_layer, strokes_node)) = selected_strokes_node(document) else { return };
+		self.options.eraser = graph_modification_utils::get_blend_mode(group_layer, &document.network_interface).is_some_and(|blend_mode| blend_mode == BlendMode::Erase);
 		let Some(node) = document.network_interface.document_network().nodes.get(&strokes_node) else {
 			return;
 		};
@@ -383,7 +413,15 @@ impl BrushToolData {
 			.find(|&ancestor| self.load_brush_layer(document, ancestor))?;
 
 		let Some(output) = document.network_interface.upstream_output_connector(&InputConnector::node_at_index(selected_layer.to_node(), 1), &[]) else {
-			return Some((brush_layer, BrushTarget::FillEmpty { layer: selected_layer }));
+			// An eraser stroke must not turn the empty layer itself into an eraser of the layers beneath it, so it goes into a new child group instead
+			return Some((brush_layer, if options.eraser {
+				BrushTarget::NewGroup {
+					parent: selected_layer,
+					insert_index: 0,
+				}
+			} else {
+				BrushTarget::FillEmpty { layer: selected_layer }
+			}));
 		};
 
 		let new_group = || {
@@ -405,7 +443,7 @@ impl BrushToolData {
 			.and_then(|input| input.as_value())
 			.and_then(|value| if let TaggedValue::Strokes(strokes) = value { Some(strokes.clone()) } else { None });
 		match strokes {
-			Some(strokes) if Self::style_matches(document, strokes_node_id, options) => Some((brush_layer, BrushTarget::Existing { strokes_node_id, strokes })),
+			Some(strokes) if Self::style_matches(document, selected_layer, strokes_node_id, options) => Some((brush_layer, BrushTarget::Existing { strokes_node_id, strokes })),
 			_ => Some((brush_layer, new_group())),
 		}
 	}
@@ -435,7 +473,11 @@ impl BrushToolData {
 		false
 	}
 
-	fn style_matches(document: &DocumentMessageHandler, strokes_node: NodeId, options: &BrushOptions) -> bool {
+	fn style_matches(document: &DocumentMessageHandler, layer: LayerNodeIdentifier, strokes_node: NodeId, options: &BrushOptions) -> bool {
+		let erases = graph_modification_utils::get_blend_mode(layer, &document.network_interface).is_some_and(|blend_mode| blend_mode == BlendMode::Erase);
+		if erases != options.eraser {
+			return false;
+		}
 		let Some(node) = document.network_interface.document_network().nodes.get(&strokes_node) else {
 			return false;
 		};
@@ -563,6 +605,7 @@ impl Fsm for BrushToolFsmState {
 							diameter: tool_options.stroke_diameter(document),
 							hardness: tool_options.hardness,
 							flow: tool_options.flow,
+							eraser: tool_options.eraser,
 						});
 						responses.add(NodeGraphMessage::SelectedNodesSet { nodes: vec![group_id] });
 					}
@@ -577,6 +620,7 @@ impl Fsm for BrushToolFsmState {
 							diameter: tool_options.stroke_diameter(document),
 							hardness: tool_options.hardness,
 							flow: tool_options.flow,
+							eraser: tool_options.eraser,
 						});
 					}
 				}
@@ -663,6 +707,7 @@ impl Fsm for BrushToolFsmState {
 		let hint_data = match self {
 			BrushToolFsmState::Ready => HintData(vec![
 				HintGroup(vec![HintInfo::mouse(MouseMotion::LmbDrag, "Draw")]),
+			HintGroup(vec![HintInfo::multi_keys([[Key::KeyB], [Key::KeyE]], "Paint / Erase Mode")]),
 				HintGroup(vec![HintInfo::multi_keys([[Key::BracketLeft], [Key::BracketRight]], "Shrink/Grow Brush")]),
 			]),
 			BrushToolFsmState::Drawing => HintData(vec![HintGroup(vec![HintInfo::mouse(MouseMotion::Rmb, ""), HintInfo::keys([Key::Escape], "Cancel").prepend_slash()])]),
@@ -676,7 +721,7 @@ impl Fsm for BrushToolFsmState {
 	}
 }
 
-fn selected_strokes_node(document: &DocumentMessageHandler) -> Option<NodeId> {
+fn selected_strokes_node(document: &DocumentMessageHandler) -> Option<(LayerNodeIdentifier, NodeId)> {
 	let selected_nodes = document.network_interface.selected_nodes();
 	let mut selected_layers = selected_nodes.selected_layers(document.metadata());
 	let selected_layer = selected_layers.next().filter(|_| selected_layers.next().is_none())?;
@@ -698,7 +743,7 @@ fn selected_strokes_node(document: &DocumentMessageHandler) -> Option<NodeId> {
 	let OutputConnector::Node { node_id, .. } = document.network_interface.upstream_output_connector(&InputConnector::node_at_index(group.to_node(), 1), &[])? else {
 		return None;
 	};
-	(document.network_interface.reference(&node_id, &[]) == Some(DefinitionIdentifier::ProtoNode(brush_strokes::IDENTIFIER))).then_some(node_id)
+	(document.network_interface.reference(&node_id, &[]) == Some(DefinitionIdentifier::ProtoNode(brush_strokes::IDENTIFIER))).then_some((group, node_id))
 }
 
 fn is_brush_layer(document: &DocumentMessageHandler, candidate: LayerNodeIdentifier) -> bool {

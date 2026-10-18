@@ -974,6 +974,7 @@ import GeneralEyedropperTool from "/../branding/assets/24x24-tools/general-eyedr
 import GeneralFillTool from "/../branding/assets/24x24-tools/general-fill-tool.svg";
 import GeneralGradientTool from "/../branding/assets/24x24-tools/general-gradient-tool.svg";
 import GeneralNavigateTool from "/../branding/assets/24x24-tools/general-navigate-tool.svg";
+import Eraser from "/../branding/assets/24x24-tools/eraser.svg";
 import GeneralSelectTool from "/../branding/assets/24x24-tools/general-select-tool.svg";
 import RasterBrushTool from "/../branding/assets/24x24-tools/raster-brush-tool.svg";
 import RasterCloneTool from "/../branding/assets/24x24-tools/raster-clone-tool.svg";
@@ -997,6 +998,7 @@ const ICON_24X24_TOOLS = {
 	GeneralFillTool: { svg: GeneralFillTool, size: 24 },
 	GeneralGradientTool: { svg: GeneralGradientTool, size: 24 },
 	GeneralNavigateTool: { svg: GeneralNavigateTool, size: 24 },
+	Eraser: { svg: Eraser, size: 24 },
 	GeneralSelectTool: { svg: GeneralSelectTool, size: 24 },
 	RasterBrushTool: { svg: RasterBrushTool, size: 24 },
 	RasterCloneTool: { svg: RasterCloneTool, size: 24 },
