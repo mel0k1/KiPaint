@@ -1,6 +1,6 @@
 use super::tool_prelude::*;
 use crate::application::generate_uuid;
-use crate::consts::{BRUSH_FLOW_DEFAULT, BRUSH_HARDNESS_DEFAULT, BRUSH_SIZE_DEFAULT, BRUSH_STABILIZATION_DEFAULT};
+use crate::consts::{BRUSH_FLOW_DEFAULT, BRUSH_HARDNESS_DEFAULT, BRUSH_PRESSURE_GAMMA_DEFAULT, BRUSH_SIZE_DEFAULT, BRUSH_STABILIZATION_DEFAULT};
 use crate::messages::portfolio::document::graph_operation::transform_utils::get_current_transform;
 use crate::messages::portfolio::document::node_graph::document_node_definitions::{DefinitionIdentifier, resolve_proto_node_type};
 use crate::messages::portfolio::document::utility_types::document_metadata::LayerNodeIdentifier;
@@ -30,6 +30,7 @@ pub struct BrushOptions {
 	diameter: f64,
 	hardness: f64,
 	flow: f64,
+	pressure_gamma: f64,
 	stabilization: f64,
 	color: ToolColorOptions,
 	scale_with_viewport: bool,
@@ -42,6 +43,7 @@ impl Default for BrushOptions {
 			diameter: BRUSH_SIZE_DEFAULT,
 			hardness: BRUSH_HARDNESS_DEFAULT,
 			flow: BRUSH_FLOW_DEFAULT,
+			pressure_gamma: BRUSH_PRESSURE_GAMMA_DEFAULT,
 			stabilization: BRUSH_STABILIZATION_DEFAULT,
 			color: ToolColorOptions::default(),
 			scale_with_viewport: false,
@@ -88,6 +90,7 @@ pub enum BrushToolMessageOptionsUpdate {
 	Diameter(f64),
 	Hardness(f64),
 	Flow(f64),
+	PressureGamma(f64),
 	Stabilization(f64),
 	ScaleWithViewport(bool),
 	WorkingColorsChanged,
@@ -199,6 +202,22 @@ impl LayoutHolder for BrushTool {
 				})
 				.widget_instance(),
 			Separator::new(SeparatorStyle::Related).widget_instance(),
+			NumberInput::new(Some(self.options.pressure_gamma))
+				.label("Pressure Curve")
+				.tooltip_label("Pressure Curve")
+				.tooltip_description("Gamma curve applied to pen pressure. Below 1 responds to lighter touches, above 1 requires harder pressure.")
+				.min(0.1)
+				.max(4.)
+				.mode_range()
+				.unit("x")
+				.on_update(|number_input: &NumberInput| {
+					BrushToolMessage::UpdateOptions {
+						options: BrushToolMessageOptionsUpdate::PressureGamma(number_input.value.unwrap()),
+					}
+					.into()
+				})
+				.widget_instance(),
+			Separator::new(SeparatorStyle::Related).widget_instance(),
 			NumberInput::new(Some(self.options.stabilization))
 				.label("Stabilization")
 				.tooltip_label("Stabilization")
@@ -250,6 +269,7 @@ impl<'a> MessageHandler<ToolMessage, &mut ToolActionMessageContext<'a>> for Brus
 			BrushToolMessageOptionsUpdate::Diameter(diameter) => self.options.diameter = diameter,
 			BrushToolMessageOptionsUpdate::Hardness(hardness) => self.options.hardness = hardness,
 			BrushToolMessageOptionsUpdate::Flow(flow) => self.options.flow = flow,
+			BrushToolMessageOptionsUpdate::PressureGamma(gamma) => self.options.pressure_gamma = gamma,
 			BrushToolMessageOptionsUpdate::Stabilization(stabilization) => self.options.stabilization = stabilization,
 			BrushToolMessageOptionsUpdate::Color(color) => {
 				if let Some(color) = color {
@@ -509,7 +529,7 @@ impl Fsm for BrushToolFsmState {
 					.transform_point2(input.mouse.position);
 				let layer_position = tool_data.transform.inverse().transform_point2(pos);
 
-				let pressure = input.mouse.pressure;
+				let pressure = input.mouse.pressure.map(|p| p.powf(tool_options.pressure_gamma));
 				tool_data.stroke = Stroke {
 					time: Channel::Samples(Vec::new()),
 					seed: generate_uuid(),
@@ -571,6 +591,7 @@ impl Fsm for BrushToolFsmState {
 				if pressure == Some(0.) {
 					return BrushToolFsmState::Drawing;
 				}
+				let pressure = pressure.map(|p| p.powf(tool_options.pressure_gamma));
 
 				let (last_position, last_pressure) = tool_data.last_sample;
 				let moved = input.mouse.position.distance(last_position) >= SAMPLE_MERGE_DISTANCE;
